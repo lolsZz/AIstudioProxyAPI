@@ -1,36 +1,44 @@
 # AI Studio Proxy Server (Python/Camoufox Version)
 
-**⚠️ Important notice: No longer necessary to manually install and trust root certificates**
+**⚠️ Notice:** Version 3.2.4+ no longer requires manual certificate installation.
 
-Version 3.2.4 and later have eliminated the need for manual installation and trust of root certificates. The certificate configuration process has been optimized and no longer relies on the system certificate manager; instead, certificate errors are directly ignored in the browser.
-
-**This is the currently maintained Python version. For the deprecated JavaScript version, please refer to [`deprecated_javascript_version/README.md`](deprecated_javascript_version/README.md).**
+**This is the maintained Python version. The deprecated JavaScript version is in [`deprecated_javascript_version/README.md`](deprecated_javascript_version/README.md).**
 
 ## Table of Contents
 
-- [Project Overview](#project-overview)
-- [How it works](#how-it-works)
-- [Project Structure Description](#project-structure-description)
-  - [Module responsibilities](#module-responsibilities)
-- [Disclaimer](#disclaimer)
-- [Core Features (Python Version)](#core-features-python-version)
-- [Important notes (Python version)](#important-notes-python-version)
-- [Project workflow diagram](#project-workflow-diagram)
-- [Tutorial](#tutorial)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-  - [First run and authentication](#first-run-and-authentication)
-  - [Daily operation](#daily-operation)
-  - [API usage](#api-usage)
-  - [Web UI (service testing)](#web-ui-service-testing)
-  - [Configure the client (using Open WebUI as an example)](#configure-the-client-using-open-webui-as-an-example)
-- [Docker Deployment](#docker-deployment)
-- [Multi-platform Guide (Python version)](#multi-platform-guide-python-version)
-- [Troubleshooting (Python version)](#troubleshooting-python-version)
-  - [Streaming proxy service: how it works](#streaming-proxy-service-how-it-works)
-- [About Camoufox](#about-camoufox)
-- [About fetch_camoufox_data.py](#about-fetch_camoufox_datapy)
-- [Control Log Output (Python Version)](#control-log-output-python-version)
+- [AI Studio Proxy Server (Python/Camoufox Version)](#ai-studio-proxy-server-pythoncamoufox-version)
+  - [Table of Contents](#table-of-contents)
+  - [Project Overview](#project-overview)
+  - [How it works](#how-it-works)
+  - [Project Structure](#project-structure)
+    - [Module Responsibilities](#module-responsibilities)
+  - [Disclaimer](#disclaimer)
+  - [Core Features](#core-features)
+  - [Important notes (Python version)](#important-notes-python-version)
+  - [Project workflow diagram](#project-workflow-diagram)
+  - [Tutorial](#tutorial)
+    - [Prerequisites](#prerequisites)
+    - [Installation](#installation)
+    - [First run and authentication](#first-run-and-authentication)
+    - [Daily operation](#daily-operation)
+    - [API usage](#api-usage)
+    - [Web UI (service testing)](#web-ui-service-testing)
+    - [Configure the client (using Open WebUI as an example)](#configure-the-client-using-open-webui-as-an-example)
+  - [Docker Deployment](#docker-deployment)
+  - [Multi-platform Guide (Python version)](#multi-platform-guide-python-version)
+    - [macOS / Linux](#macos--linux)
+    - [Windows](#windows)
+      - [Native Windows](#native-windows)
+      - [WSL (Windows Subsystem for Linux)](#wsl-windows-subsystem-for-linux)
+  - [Troubleshooting (Python version)](#troubleshooting-python-version)
+    - [Common Issues](#common-issues)
+    - [Model parameter settings not taking effect](#model-parameter-settings-not-taking-effect)
+    - [Streaming proxy service: how it works](#streaming-proxy-service-how-it-works)
+      - [Features](#features)
+      - [Certificate Generation](#certificate-generation)
+  - [About Camoufox](#about-camoufox)
+  - [About fetch\_camoufox\_data.py](#about-fetch_camoufox_datapy)
+  - [Control Log Output (Python Version)](#control-log-output-python-version)
 
 ## Project Overview
 
@@ -48,130 +56,110 @@ Through this proxy, various clients that support the OpenAI API (such as Open We
 
 ## How it works
 
-This project serves as an intelligent proxy layer with the core goal of allowing users to interact with Google AI Studio using the standard OpenAI API format. Its workflow and key components are as follows:
+This project serves as a proxy layer that translates OpenAI API requests to Google AI Studio interactions:
 
-1. **API compatibility layer (modular architecture)**:
-   - **Main server** ([`server.py`](server.py)): Coordinates all modules and manages global state and lifecycle.
-   - **API Routing Module** ([`api_utils/routes.py`](api_utils/routes.py)): Handles all API endpoints, including `/v1/chat/completions`, `/v1/models`, `/health`, etc.
-   - **Request processing module** ([`api_utils/request_processor.py`](api_utils/request_processor.py)): Responsible for request validation, processing, and response generation.
-   - **Queue worker** ([`api_utils/queue_worker.py`](api_utils/queue_worker.py)): Manages the request queue and ensures that requests are processed in order.
+1. **API Compatibility Layer**:
+   - **Main server** ([`server.py`](server.py)): Coordinates all modules and manages global state
+   - **API Routing** ([`api_utils/routes.py`](api_utils/routes.py)): Handles endpoints like `/v1/chat/completions`, `/v1/models`
+   - **Request processing** ([`api_utils/request_processor.py`](api_utils/request_processor.py)): Validates and processes requests
+   - **Queue worker** ([`api_utils/queue_worker.py`](api_utils/queue_worker.py)): Manages request queue for stability
 
-2. **Browser automation module** ([`browser_utils/`](browser_utils/) and Playwright):
-   - **Initialisation module** ([`browser_utils/initialisation.py`](browser_utils/initialisation.py)): Handles browser and page initialisation logic.
-   - **Model management module** ([`browser_utils/model_management.py`](browser_utils/model_management.py)): Handles model switching and list retrieval.
-   - **Operation module** ([`browser_utils/operations.py`](browser_utils/operations.py)): Handles page interaction, response retrieval, and other operations.
+2. **Browser Automation**:
+   - **Initialization** ([`browser_utils/initialisation.py`](browser_utils/initialisation.py)): Browser and page setup
+   - **Model management** ([`browser_utils/model_management.py`](browser_utils/model_management.py)): Model switching and retrieval
+   - **Operations** ([`browser_utils/operations.py`](browser_utils/operations.py)): Page interaction and response handling
 
 3. **Enhanced Browser (Camoufox)**:
-   - [`launch_camoufox.py`](launch_camoufox.py) is responsible for launching and managing Camoufox instances.
-   - Camoufox is a modified version of the Firefox browser that focuses on disguising browser fingerprints through underlying modifications, rather than relying on JavaScript injection.
+   - [`launch_camoufox.py`](launch_camoufox.py) launches Camoufox instances
+   - Camoufox is a modified Firefox with enhanced anti-fingerprinting capabilities
 
-4. **Integrated streaming proxy service** ([`stream/`](stream/) module):
-   - **Main proxy service** ([`stream/main.py`](stream/main.py)): This is the recommended and more efficient response retrieval method for the project, which listens on port `3120` by default.
-   - **Proxy server** ([`stream/proxy_server.py`](stream/proxy_server.py)): Implements HTTP proxy server functionality.
-   - **Certificate Manager** ([`stream/cert_manager.py`](stream/cert_manager.py)): Manages SSL certificate generation and verification.
+4. **Streaming Proxy Service** ([`stream/`](stream/)):
+   - **Main service** ([`stream/main.py`](stream/main.py)): High-performance response retrieval (port `3120`)
+   - **Proxy server** ([`stream/proxy_server.py`](stream/proxy_server.py)): HTTP proxy functionality
+   - **Certificate Manager** ([`stream/cert_manager.py`](stream/cert_manager.py)): SSL certificate management
 
-## Project Structure Description
+## Project Structure
 
-The project adopts a modular architecture design, with the main directory structure as follows:
-
-```
+```text
 freegoogleapi/
-├── server.py                    # Main server file, coordinates all modules
+├── server.py                    # Main server file
 ├── launch_camoufox.py          # Launcher script
-├── gui_launcher.py             # Graphical user interface launcher
-├── llm.py                      # Local LLM simulation service
-├── requirements.txt            # Python dependency list
-├── excluded_models.txt         # List of excluded models
-├── index.html                  # Web UI main page
+├── gui_launcher.py             # GUI launcher
+├── llm.py                      # Local LLM simulation
+├── requirements.txt            # Dependencies
+├── excluded_models.txt         # Excluded models list
+├── index.html                  # Web UI
 ├── webui.css                   # Web UI styles
 ├── webui.js                    # Web UI scripts
-├── config/                     # Configuration management module
-│   ├── __init__.py
-│   ├── settings.py            # Runtime settings configuration
-│   ├── constants.py           # Project constant definitions
-│   ├── selectors.py           # CSS selector management
+├── config/                     # Configuration management
+│   ├── settings.py            # Runtime settings
+│   ├── constants.py           # Project constants
+│   ├── selectors.py           # CSS selectors
 │   └── timeouts.py            # Timeout configuration
-├── models/                     # Data model module
-│   ├── __init__.py
-│   ├── chat.py                # Chat-related data structures
-│   ├── exceptions.py          # Exception class definitions
-│   └── logging.py             # Logging-related models
-├── api_utils/                  # API processing module
-│   ├── __init__.py
-│   ├── app.py                 # FastAPI application creation
-│   ├── routes.py              # API route handling
-│   ├── request_processor.py   # Request processing logic
+├── models/                     # Data models
+│   ├── chat.py                # Chat data structures
+│   ├── exceptions.py          # Exception classes
+│   └── logging.py             # Logging models
+├── api_utils/                  # API processing
+│   ├── app.py                 # FastAPI application
+│   ├── routes.py              # API routes
+│   ├── request_processor.py   # Request processing
 │   ├── queue_worker.py        # Queue worker
-│   └── utils.py               # API utility functions
-├── browser_utils/              # Browser operation module
-│   ├── __init__.py
-│   ├── initialisation.py      # Browser initialisation
+│   └── utils.py               # API utilities
+├── browser_utils/              # Browser operations
+│   ├── initialisation.py      # Browser initialization
 │   ├── model_management.py    # Model management
 │   └── operations.py          # Page operations
-├── logging_utils/              # Logging system module
-│   ├── __init__.py
+├── logging_utils/              # Logging system
 │   └── setup.py               # Logging configuration
-├── stream/                     # Stream proxy module
-│   ├── __init__.py
+├── stream/                     # Stream proxy
 │   ├── main.py                # Main proxy service
 │   ├── proxy_server.py        # Proxy server
 │   ├── proxy_connector.py     # Proxy connector
 │   ├── interceptors.py        # Request interceptors
 │   ├── cert_manager.py        # Certificate management
-│   └── utils.py               # Utility functions
-├── auth_profiles/              # Authentication file directory
-│   ├── active/                # Currently used authentication files
-│   └── saved/                 # Saved authentication files
-├── certs/                      # SSL certificate directory
-├── logs/                       # Log file directory
-└── errors_py/                  # Error snapshot directory
+│   └── utils.py               # Utilities
+├── auth_profiles/              # Authentication files
+│   ├── active/                # Current auth files
+│   └── saved/                 # Saved auth files
+├── certs/                      # SSL certificates
+├── logs/                       # Log files
+└── errors_py/                  # Error snapshots
 ```
 
-### Module responsibilities
+### Module Responsibilities
 
-- **config/**: Unify project configuration management, including environment variables, constants, CSS selectors, timeout settings, etc.
-- **models/**: Define data structures, exception classes, and log models used in the project
-- **api_utils/**: Handles all API-related functions, including routing, request handling, queue management, etc.
-- **browser_utils/**: Encapsulates all browser operations, including initialisation, model management, page interaction, etc.
-- **logging_utils/**: Provides unified log configuration and management functions
-- **stream/**: Implements high-performance streaming proxy services, including certificate management, request interception, etc.
+- **config/**: Configuration management (environment variables, constants, selectors, timeouts)
+- **models/**: Data structures, exceptions, and logging models
+- **api_utils/**: API routing, request handling, and queue management
+- **browser_utils/**: Browser operations, initialization, and model management
+- **logging_utils/**: Unified logging configuration
+- **stream/**: High-performance streaming proxy with certificate management
 
 ## Disclaimer
 
-By using this project, you acknowledge that you have read, understood, and agreed to all of the terms of this disclaimer.
+Do not use this project, it is for educational purposes only.
 
-This project interacts with the Google AI Studio web version through automated scripts (Playwright + Camoufox). This method of automated web access may violate the user agreement or terms of service (Terms of Service) of Google AI Studio or related Google services. Improper use of this project may result in your Google account being warned, restricted, temporarily or permanently banned, or other penalties. The project author and contributors are not responsible for any such consequences.
+## Core Features
 
-Since this project relies on the structure and front-end code of the Google AI Studio web page, Google may update or modify its web page at any time, which may cause this project to become inoperable, unstable, or contain unknown errors. The project author and contributors cannot guarantee the continued availability or stability of this project.
-
-This project is not an official project or collaboration with Google or OpenAI. It is a completely independent third-party tool. The project author has no affiliation with Google or OpenAI.
-
-This project is provided 'as is' without any express or implied warranties, including but not limited to warranties of merchantability, fitness for a particular purpose, or non-infringement. You understand and agree to assume all risks associated with using this project.
-
-Under no circumstances shall the project authors or contributors be liable for any direct, indirect, incidental, special, punitive, or consequential damages arising out of the use or inability to use this project.
-
-By using this project, you acknowledge that you have fully understood and accepted all the terms of this disclaimer. If you do not agree with any part of this statement, please immediately stop using this project.
-
-## Core Features (Python Version)
-
-- **OpenAI API Compatibility**: Provides the following endpoints: `/v1/chat/completions`, `/v1/models`, `/api/info`, `/health`, `/v1/queue`, `/v1/cancel/{req_id}` (default port `2048`).
-- **Model switching**: The `model` field in API requests is now used to dynamically switch models on the AI Studio page.
-- **Streaming/non-streaming responses**: Supports `stream=true` and `stream=false`.
-- **Response retrieval priority**:
-  1. **Integrated streaming proxy service (Stream Proxy Service)**: Enabled by default (listening on port `3120`)
-  2. **External Helper Service (optional)**: If configured and available
-  3. **Playwright Page Interaction (Fallback)**: If both of the above methods are unavailable
-- **Request queue**: Uses `asyncio.Queue` to process requests sequentially for improved stability.
-- **Camoufox integration**: Uses the `camoufox` library to launch a modified Firefox instance, utilising its anti-fingerprinting and anti-detection capabilities.
-- **Multiple startup modes**:
-  - **Debug mode (`--debug`)**: Start a browser with a user interface for initial authentication, debugging, and updating authentication files.
-  - **Headless mode (`--headless`)**: Run in the background without a user interface. Requires a valid authentication file to be saved in advance.
-  - **Virtual display headless mode (`--virtual-display`)**: Linux only, runs a headless browser using the Xvfb virtual display to enhance anti-fingerprinting detection.
-- **Web UI**: Provides access to a modern chat interface based on `index.html` via the `/` path
-- **Modular architecture design**: Clear separation of responsibilities across different modules
-- **Graphical Interface Launcher (`gui_launcher.py`)**: Provides a Tkinter GUI to simplify the launch and management of services
-- **Error snapshot**: Automatically saves screenshots and HTML in the `errors_py/` directory when an error occurs
-- **Logging control**: Control the logging level and `print` output redirection behaviour via environment variables
+- **OpenAI API Compatibility**: Provides endpoints: `/v1/chat/completions`, `/v1/models`, `/api/info`, `/health`, `/v1/queue`, `/v1/cancel/{req_id}` (default port `2048`)
+- **Dynamic Model Switching**: Uses the `model` field in API requests to switch models on AI Studio
+- **Streaming Support**: Supports both `stream=true` and `stream=false` modes
+- **Multiple Response Methods**:
+  1. **Integrated streaming proxy service** (port `3120`, default)
+  2. **External Helper Service** (optional)
+  3. **Playwright Page Interaction** (fallback)
+- **Request Queue**: Sequential processing using `asyncio.Queue` for improved stability
+- **Camoufox Integration**: Anti-fingerprinting and anti-detection capabilities
+- **Multiple Startup Modes**:
+  - **Debug mode** (`--debug`): Browser UI for authentication and debugging
+  - **Headless mode** (`--headless`): Background operation with saved authentication
+  - **Virtual display** (`--virtual-display`): Linux-only headless with Xvfb
+- **Web UI**: Modern chat interface at the `/` endpoint
+- **Modular Architecture**: Clear separation of responsibilities
+- **GUI Launcher**: Tkinter interface for easy service management
+- **Error Handling**: Automatic screenshots and HTML saves in `errors_py/`
+- **Configurable Logging**: Environment variable control
 
 ## Important notes (Python version)
 
