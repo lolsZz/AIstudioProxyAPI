@@ -170,45 +170,52 @@ Do not use this project, it is for educational purposes only.
 
 ```mermaid
 graph TD
-    subgraph 'User Side'
-        User['User']
+    subgraph "User Side"
+        User["User"]
     end
 
-    subgraph 'Launch Methods'
-        CLI_Launch['launch_camoufox.py (CLI)']
-        GUI_Launch['gui_launcher.py (GUI)']
+    subgraph "Launch Methods"
+        CLI_Launch["launch_camoufox.py (CLI)"]
+        GUI_Launch["gui_launcher.py (GUI)"]
     end
 
-    subgraph 'Core Services'
-        ServerPY['server.py (FastAPI + Playwright)']
-        StreamProxy['stream.py (Integrated Stream Proxy)']
-        CamoufoxInstance['Camoufox Browser Instance']
+    subgraph "Core Services"
+        ServerPY["server.py (FastAPI + Playwright)"]
+        StreamProxy["stream.py (Integrated Stream Proxy)"]
+        CamoufoxInstance["Camoufox Browser Instance"]
     end
 
-    subgraph 'External Dependencies & Services'
-        AI_Studio['Target AI Service (e.g., Google AI Studio)']
-        OptionalHelper['(Optional) External Helper Service']
+    subgraph "External Dependencies & Services"
+        AI_Studio["Target AI Service (e.g., Google AI Studio)"]
+        OptionalHelper["(Optional) External Helper Service"]
     end
 
-    subgraph 'API Clients'
-        API_Client['API Client (e.g., Open WebUI, cURL)']
+    subgraph "API Clients"
+        API_Client["API Client (e.g., Open WebUI, cURL)"]
     end
 
-    User --> CLI_Launch
-    User --> GUI_Launch
-    GUI_Launch --> CLI_Launch
-    CLI_Launch --> ServerPY
-    CLI_Launch --> StreamProxy
-    ServerPY --> CamoufoxInstance
-    ServerPY --> StreamProxy
-    StreamProxy --> AI_Studio
-    StreamProxy --> ServerPY
-    ServerPY --> OptionalHelper
-    OptionalHelper --> ServerPY
-    ServerPY --> CamoufoxInstance
-    CamoufoxInstance --> AI_Studio
-    API_Client --> ServerPY
-    ServerPY --> API_Client
+    User -- "Executes command" --> CLI_Launch
+    User -- "Interacts with UI" --> GUI_Launch
+
+    GUI_Launch -- "Builds & executes command" --> CLI_Launch
+
+    CLI_Launch -- "Starts & manages" --> ServerPY
+    CLI_Launch -- "If --stream-port > 0" --> StreamProxy
+    CLI_Launch -- "Via --helper <url>" --> ServerPY
+
+    ServerPY -- "Controls browser" --> CamoufoxInstance
+    ServerPY -- "Request (Priority 1)" --> StreamProxy
+    StreamProxy -- "Direct request" --> AI_Studio
+    StreamProxy -- "Response" --> ServerPY
+
+    ServerPY -- "Request (Priority 2, if StreamProxy disabled AND Helper configured)" --> OptionalHelper
+    OptionalHelper -- "Response" --> ServerPY
+
+    ServerPY -- "Request (Priority 3, if StreamProxy AND Helper disabled/failed)" --> CamoufoxInstance
+    CamoufoxInstance -- "Interacts with AI Service" --> AI_Studio
+
+    API_Client -- "API Request /v1/chat/completions" --> ServerPY
+    ServerPY -- "API Response" --> API_Client
 ```
 
 ## Tutorial
