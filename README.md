@@ -1,9 +1,5 @@
 # AI Studio Proxy Server (Python/Camoufox Version)
 
-**⚠️ Notice:** Version 3.2.4+ no longer requires manual certificate installation.
-
-**This is the maintained Python version. The deprecated JavaScript version is in [`deprecated_javascript_version/README.md`](deprecated_javascript_version/README.md).**
-
 ## Table of Contents
 
 - [AI Studio Proxy Server (Python/Camoufox Version)](#ai-studio-proxy-server-pythoncamoufox-version)
