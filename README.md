@@ -203,7 +203,7 @@ graph TD
     CLI_Launch -- "If --stream-port > 0" --> StreamProxy
     CLI_Launch -- "Via --helper <url>" --> ServerPY
 
-    ServerPY -- "Controls browser" --> CamoufoxInstance
+    ServerPY -- "Controls browser" --> CamoufoxIpip install -U camoufox[geoip]-U camoufox[geoip]nstance
     ServerPY -- "Request (Priority 1)" --> StreamProxy
     StreamProxy -- "Direct request" --> AI_Studio
     StreamProxy -- "Response" --> ServerPY
@@ -267,7 +267,8 @@ camoufox fetch
 
 ```bash
 # Ensure that the Playwright library can find the necessary system dependencies
-playwright install-deps firefox
+launch_camoufox.py --debug --server-port 2048 --stream-port 3120 --helper "" --internal-camoufox-proxy ""
+
 ```
 
 ### First run and authentication

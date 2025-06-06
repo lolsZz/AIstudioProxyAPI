@@ -1,6 +1,6 @@
 # FastAPI and related
 fastapi==0.104.1
-pydantic==2.4.2
+pydantic>=2.8.0
 
 # Uvicorn and standard extras
 uvicorn==0.23.2
