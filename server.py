@@ -11,7 +11,7 @@ import sys
 import platform
 import logging
 import logging.handlers
-import socket # 保留 socket 以便在 __main__ 中进行简单的直接运行提示
+import socket  # Keep socket for simple direct run hints in __main__
 from asyncio import Queue, Lock, Future, Task, Event
 
 from fastapi import FastAPI, Request, HTTPException
@@ -27,14 +27,14 @@ import aiohttp
 import stream
 import queue
 
-# --- 配置模块导入 ---
+# --- Configuration module imports ---
 from config import *
 
-# --- models模块导入 ---
+# --- Models module imports ---
 from models import (
     FunctionCall,
     ToolCall,
-    MessageContentItem, 
+    MessageContentItem,
     Message,
     ChatCompletionRequest,
     ClientDisconnectedError,
@@ -43,10 +43,10 @@ from models import (
     WebSocketLogHandler
 )
 
-# --- logging_utils模块导入 ---
+# --- Logging utilities module imports ---
 from logging_utils import setup_server_logging, restore_original_streams
 
-# --- browser_utils模块导入 ---
+# --- Browser utilities module imports ---
 from browser_utils import (
     _initialize_page_logic,
     _close_page_logic,
@@ -65,10 +65,10 @@ from browser_utils import (
     _set_model_from_page_display
 )
 
-# --- api_utils模块导入 ---
+# --- API utilities module imports ---
 from api_utils import (
     generate_sse_chunk,
-    generate_sse_stop_chunk, 
+    generate_sse_stop_chunk,
     generate_sse_error_chunk,
     use_helper_get_response,
     use_stream_response,
@@ -93,7 +93,7 @@ is_browser_connected = False
 is_page_ready = False
 is_initializing = False
 
-# --- 全局代理配置 ---
+# --- Global proxy configuration ---
 PLAYWRIGHT_PROXY_SETTINGS: Optional[Dict[str, str]] = None
 
 global_model_list_raw_json: Optional[List[Any]] = None
@@ -116,7 +116,7 @@ logger = logging.getLogger("AIStudioProxyServer")
 log_ws_manager = None
 
 
-# --- FastAPI App 定义 ---
+# --- FastAPI App definition ---
 app = create_app()
 
 # --- Main Guard ---

@@ -15,7 +15,7 @@ from urllib.parse import urlparse
 import shlex
 import logging
 import json
-import requests # 新增导入
+import requests  # New import
 
 # --- Configuration & Globals ---
 PYTHON_EXECUTABLE = sys.executable
@@ -23,12 +23,12 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 LAUNCH_CAMOUFOX_PY = os.path.join(SCRIPT_DIR, "launch_camoufox.py")
 SERVER_PY_FILENAME = "server.py" # For context
 
-AUTH_PROFILES_DIR = os.path.join(SCRIPT_DIR, "auth_profiles") # 确保这些目录存在
+AUTH_PROFILES_DIR = os.path.join(SCRIPT_DIR, "auth_profiles") # Ensure these directories exist
 ACTIVE_AUTH_DIR = os.path.join(AUTH_PROFILES_DIR, "active")
 SAVED_AUTH_DIR = os.path.join(AUTH_PROFILES_DIR, "saved")
 
 DEFAULT_FASTAPI_PORT = 2048
-DEFAULT_CAMOUFOX_PORT_GUI = 9222 # 与 launch_camoufox.py 中的 DEFAULT_CAMOUFOX_PORT 一致
+DEFAULT_CAMOUFOX_PORT_GUI = 9222 # Consistent with DEFAULT_CAMOUFOX_PORT in launch_camoufox.py
 
 managed_process_info: Dict[str, Any] = {
     "popen": None,
@@ -37,10 +37,10 @@ managed_process_info: Dict[str, Any] = {
     "stdout_thread": None,
     "stderr_thread": None,
     "output_area": None,
-    "fully_detached": False # 新增：标记进程是否完全独立
+    "fully_detached": False  # New: Mark if process is fully independent
 }
 
-# 添加全局logger定义
+# Add global logger definition
 logger = logging.getLogger("GUILauncher")
 logger.setLevel(logging.INFO)
 console_handler = logging.StreamHandler()
@@ -51,7 +51,7 @@ file_handler = logging.FileHandler(os.path.join(SCRIPT_DIR, "logs", "gui_launche
 file_handler.setFormatter(logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s'))
 logger.addHandler(file_handler)
 
-# 在LANG_TEXTS声明之前定义长文本
+# Define long text before LANG_TEXTS declaration
 service_closing_guide_message_zh = """由于服务在独立终端中运行，您可以通过以下方式关闭服务：
 
 1. 使用端口管理功能:
@@ -277,7 +277,7 @@ def get_text(key: str, **kwargs) -> str:
 
 def update_status_bar(message_key: str, **kwargs):
     message = get_text(message_key, **kwargs)
-    
+
     def _perform_gui_updates():
         # Update the status bar label's text variable
         if process_status_text_var:
@@ -292,7 +292,7 @@ def update_status_bar(message_key: str, **kwargs):
                 output_area_widget.insert(tk.END, f"[STATUS] {message}\n")
                 output_area_widget.see(tk.END)
                 output_area_widget.config(state=tk.DISABLED)
-                
+
     if root_widget:
         root_widget.after_idle(_perform_gui_updates)
 
@@ -393,12 +393,12 @@ def kill_process_pid(pid: int) -> bool:
                 logger.debug(f"Checking PID {pid} with kill -0 after SIGTERM attempt")
                 # This will raise CalledProcessError if process is gone OR user lacks permission for kill -0
                 subprocess.run(["kill", "-0", str(pid)], check=True, capture_output=True, text=True, timeout=1)
-                
+
                 # If kill -0 succeeded, process is still alive and we have permission to signal it.
                 # 3. Attempt SIGKILL
                 logger.info(f"PID {pid} still alive after SIGTERM attempt (kill -0 succeeded). Sending SIGKILL.")
                 subprocess.run(["kill", "-KILL", str(pid)], check=True, capture_output=True, text=True, timeout=3) # Raises on perm error for SIGKILL
-                
+
                 # 4. Verify with kill -0 again that it's gone
                 time.sleep(0.1)
                 logger.debug(f"Verifying PID {pid} with kill -0 after SIGKILL attempt")
@@ -416,7 +416,7 @@ def kill_process_pid(pid: int) -> bool:
                         # kill -0 failed for other reason (e.g. perms, though unlikely if SIGKILL 'succeeded')
                         logger.warning(f"Final kill -0 check for PID {pid} failed unexpectedly. Stderr: {e_final_check.stderr}")
                         success = False # Unsure, so treat as failure for normal kill
-            
+
             except subprocess.CalledProcessError as e:
                 # This block is reached if initial `kill -0` fails, or `kill -KILL` fails.
                 # `e` is the error from the *first* command that failed with check=True in the try block.
@@ -428,7 +428,7 @@ def kill_process_pid(pid: int) -> bool:
                     # This means normal kill attempt failed.
                     logger.warning(f"Normal kill attempt for PID {pid} failed or encountered permission issue. Stderr from failing cmd: {e.stderr}")
                     success = False
-        
+
         elif system == "Windows":
             logger.debug(f"Using taskkill for PID {pid} on Windows.")
             result = subprocess.run(["taskkill", "/PID", str(pid), "/T", "/F"], capture_output=True, text=True, check=False, timeout=5, creationflags=subprocess.CREATE_NO_WINDOW)
@@ -448,14 +448,14 @@ def kill_process_pid(pid: int) -> bool:
     except Exception as e_outer: # Catch any other unexpected exceptions
         logger.error(f"Outer exception in kill_process_pid for PID {pid}: {e_outer}", exc_info=True)
         success = False
-    
+
     logger.info(f"kill_process_pid for PID {pid} final result: {success}")
     return success
 
 def enhanced_port_check(port, port_name_key=""):
     port_display_name = get_text(f"port_name_{port_name_key}") if port_name_key else ""
     update_status_bar("checking_port_with_name", port_name=port_display_name, port=port)
-    
+
     if is_port_in_use(port):
         pids_data = find_processes_on_port(port)
         if pids_data:
@@ -471,18 +471,18 @@ def check_all_required_ports(ports_to_check: List[Tuple[int, str]]) -> bool:
     occupied_ports_info = []
     for port, port_name_key in ports_to_check:
         result = enhanced_port_check(port, port_name_key)
-        if result: 
+        if result:
             occupied_ports_info.append(result)
 
     if not occupied_ports_info:
         update_status_bar("port_check_all_completed")
-        return True 
+        return True
 
     occupied_ports_details_for_msg = []
     for info in occupied_ports_info:
         port_display_name = get_text(f"port_name_{info['name_key']}") if info['name_key'] else ""
         occupied_ports_details_for_msg.append(f"  - {port_display_name} (端口 {info['port']}): 被 PID(s) {info['pids_str']} 占用")
-    
+
     details_str = "\n".join(occupied_ports_details_for_msg)
 
     if messagebox.askyesno(
@@ -503,7 +503,7 @@ def check_all_required_ports(ports_to_check: List[Tuple[int, str]]) -> bool:
 
                     logger.info(f"Port Check Cleanup: Attempting normal kill for PID {pid} ({name}) on port {info['port']}")
                     normal_kill_ok = kill_process_pid(pid)
-                    
+
                     if normal_kill_ok:
                         logger.info(f"Port Check Cleanup: Normal kill succeeded for PID {pid} ({name})")
                         pids_processed_this_cycle.add(pid)
@@ -524,9 +524,9 @@ def check_all_required_ports(ports_to_check: List[Tuple[int, str]]) -> bool:
                         else:
                             logger.info(f"Port Check Cleanup: User declined admin kill for PID {pid} ({name}).")
                         pids_processed_this_cycle.add(pid) # Mark as processed even if admin declined/failed, to avoid re-prompting in this cycle
-        
+
         logger.info("Port Check Cleanup: Waiting for 2 seconds for processes to terminate...")
-        time.sleep(2) 
+        time.sleep(2)
 
         still_occupied_after_cleanup = False
         for info in occupied_ports_info: # Re-check all originally occupied ports
@@ -534,8 +534,8 @@ def check_all_required_ports(ports_to_check: List[Tuple[int, str]]) -> bool:
                 port_display_name = get_text(f"port_name_{info['name_key']}") if info['name_key'] else str(info['port'])
                 logger.warning(f"Port Check Cleanup: Port {port_display_name} ({info['port']}) is still in use after cleanup attempts.")
                 still_occupied_after_cleanup = True
-                break 
-        
+                break
+
         if not still_occupied_after_cleanup:
             messagebox.showinfo(get_text("info_title"), get_text("all_ports_cleared_success"), parent=root_widget)
             update_status_bar("port_check_all_completed")
@@ -543,7 +543,7 @@ def check_all_required_ports(ports_to_check: List[Tuple[int, str]]) -> bool:
         else:
             messagebox.showwarning(get_text("warning_title"), get_text("some_ports_still_in_use"), parent=root_widget)
             return False
-    else: 
+    else:
         update_status_bar("port_check_user_declined_cleanup")
         return False
 
@@ -565,7 +565,7 @@ def manage_auth_files_gui():
     if not os.path.exists(AUTH_PROFILES_DIR): # 检查根目录
         messagebox.showerror(get_text("error_title"), get_text("auth_dirs_missing"), parent=root_widget)
         return
-    
+
     # 确保 active 和 saved 目录存在，如果不存在则创建
     os.makedirs(ACTIVE_AUTH_DIR, exist_ok=True)
     os.makedirs(SAVED_AUTH_DIR, exist_ok=True)
@@ -613,7 +613,7 @@ def manage_auth_files_gui():
             messagebox.showwarning(get_text("warning_title"), get_text("no_file_selected"), parent=auth_window)
             return
         selected_file_name = files_listbox.get(files_listbox.curselection()[0])
-        
+
         # 确定源文件路径，优先从 saved, 然后是根目录
         source_path = None
         potential_saved_path = os.path.join(SAVED_AUTH_DIR, selected_file_name)
@@ -666,7 +666,7 @@ def get_active_auth_json_path_for_launch() -> Optional[str]:
 
 def build_launch_command(mode, fastapi_port, camoufox_debug_port, stream_port_enabled, stream_port, helper_enabled, helper_endpoint):
     cmd = [PYTHON_EXECUTABLE, LAUNCH_CAMOUFOX_PY, f"--{mode}", "--server-port", str(fastapi_port), "--camoufox-debug-port", str(camoufox_debug_port)]
-    
+
     active_auth_path = get_active_auth_json_path_for_launch()
     if active_auth_path:
         cmd.extend(["--active-auth-json", active_auth_path])
@@ -678,12 +678,12 @@ def build_launch_command(mode, fastapi_port, camoufox_debug_port, stream_port_en
         cmd.extend(["--stream-port", str(stream_port)])
     else:
         cmd.extend(["--stream-port", "0"]) # 显式传递0表示禁用
-        
+
     if helper_enabled and helper_endpoint:
         cmd.extend(["--helper", helper_endpoint])
     else:
         cmd.extend(["--helper", ""]) # 显式传递空字符串表示禁用
-        
+
     return cmd
 
 # --- GUI构建与主逻辑区段的函数定义 ---
@@ -891,7 +891,7 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
         script_dir_quoted = shlex.quote(SCRIPT_DIR)
         python_executable_quoted = shlex.quote(cmd[0])
         script_path_quoted = shlex.quote(cmd[1])
-        
+
         args_for_script_quoted = [shlex.quote(arg) for arg in cmd[2:]]
 
         # 构建环境变量设置字符串
@@ -901,7 +901,7 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
                 if value is not None: # 确保值存在且不为空字符串
                     env_prefix_parts.append(f"{shlex.quote(key)}={shlex.quote(str(value))}")
         env_prefix_str = " ".join(env_prefix_parts)
-        
+
         # Construct the full shell command to be executed in the new terminal
         shell_command_parts = [
             f"cd {script_dir_quoted}",
@@ -909,7 +909,7 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
         ]
         if env_prefix_str:
             shell_command_parts.append(env_prefix_str)
-        
+
         shell_command_parts.extend([
             python_executable_quoted,
             script_path_quoted
@@ -920,11 +920,11 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
         # Now, escape this shell_command_str for embedding within an AppleScript double-quoted string.
         # In AppleScript strings, backslash `\\` and double quote `\"` are special and need to be escaped.
         applescript_arg_escaped = shell_command_str.replace('\\\\', '\\\\\\\\').replace('\"', '\\\\\"')
-        
+
         # Construct the AppleScript command
         # Using "tell application ..." is slightly more robust/standard
         applescript_command = f'tell application "Terminal" to do script "{applescript_arg_escaped}" activate'
-        
+
         launch_cmd_for_terminal = ["osascript", "-e", applescript_command]
     elif system == "Linux":
         import shutil
@@ -935,7 +935,7 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
             # For simplicity, let's try to pass the command directly if possible or via sh -c
             cd_command = f"cd '{SCRIPT_DIR}' && "
             full_command_to_run = cd_command + cmd_str_for_terminal_execution
-            
+
             if "gnome-terminal" in terminal_emulator or "mate-terminal" in terminal_emulator:
                 launch_cmd_for_terminal = [terminal_emulator, "--", "bash", "-c", full_command_to_run + "; exec bash"]
             elif "konsole" in terminal_emulator or "xfce4-terminal" in terminal_emulator or "lxterminal" in terminal_emulator:
@@ -957,7 +957,7 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
         messagebox.showerror(get_text("error_title"), f"无法为 {system} 构建终端启动命令。")
         update_status_bar("status_error_starting", service_name=service_name)
         return
-        
+
     try:
         # Launch the terminal command. This Popen object is for the terminal launcher.
         # The actual Python script is a child of that new terminal.
@@ -969,13 +969,13 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
         # For Windows, `CREATE_NEW_CONSOLE` means the Popen object is for the new python process.
         # However, we are treating all as fire-and-forget for the GUI.
         process = subprocess.Popen(launch_cmd_for_terminal, **popen_kwargs)
-        
+
         # We no longer store this popen object in managed_process_info for direct GUI management
         # as the process is meant to be independent.
-        # managed_process_info["popen"] = process 
+        # managed_process_info["popen"] = process
         # managed_process_info["service_name_key"] = service_name_key
-        # managed_process_info["fully_detached"] = True 
-        
+        # managed_process_info["fully_detached"] = True
+
         # No monitoring threads from GUI for these independent processes.
         # managed_process_info["monitor_thread"] = None
         # managed_process_info["stdout_thread"] = None
@@ -988,7 +988,7 @@ def _launch_process_gui(cmd: List[str], service_name_key: str, env_vars: Optiona
              managed_process_info["output_area"].insert(tk.END, f"[INFO] {service_name} (PID: {process.pid if system == 'Windows' else 'N/A for terminal launcher'}) should be running in a new window.\\n")
              managed_process_info["output_area"].see(tk.END)
              managed_process_info["output_area"].config(state=tk.DISABLED)
-        
+
         if root_widget: # Query ports after a delay, as service might take time to start
             root_widget.after(3500, query_port_and_display_pids_gui)
 
@@ -1006,7 +1006,7 @@ def start_headed_interactive_gui():
 
     if port_auto_check_var.get():
         ports_to_check = [
-            (launch_params["fastapi_port"], "fastapi"), 
+            (launch_params["fastapi_port"], "fastapi"),
             (launch_params["camoufox_debug_port"], "camoufox_debug")
         ]
         if launch_params["stream_port_enabled"] and launch_params["stream_port"] != 0:
@@ -1014,16 +1014,16 @@ def start_headed_interactive_gui():
         if launch_params["helper_enabled"] and launch_params["helper_endpoint"]:
             try:
                 pu = urlparse(launch_params["helper_endpoint"])
-                if pu.hostname in ("localhost", "127.0.0.1") and pu.port: 
+                if pu.hostname in ("localhost", "127.0.0.1") and pu.port:
                     ports_to_check.append((pu.port, "helper_service"))
-            except Exception as e: 
+            except Exception as e:
                 print(f"解析Helper URL失败(有头模式): {e}")
         if not check_all_required_ports(ports_to_check): return
-    
+
     proxy_env = _configure_proxy_env_vars()
     cmd = build_launch_command(
-        "debug", 
-        launch_params["fastapi_port"], 
+        "debug",
+        launch_params["fastapi_port"],
         launch_params["camoufox_debug_port"],
         launch_params["stream_port_enabled"],
         launch_params["stream_port"],
@@ -1039,7 +1039,7 @@ def start_headless_gui():
 
     if port_auto_check_var.get():
         ports_to_check = [
-            (launch_params["fastapi_port"], "fastapi"), 
+            (launch_params["fastapi_port"], "fastapi"),
             (launch_params["camoufox_debug_port"], "camoufox_debug")
         ]
         if launch_params["stream_port_enabled"] and launch_params["stream_port"] != 0:
@@ -1047,16 +1047,16 @@ def start_headless_gui():
         if launch_params["helper_enabled"] and launch_params["helper_endpoint"]:
             try:
                 pu = urlparse(launch_params["helper_endpoint"])
-                if pu.hostname in ("localhost", "127.0.0.1") and pu.port: 
+                if pu.hostname in ("localhost", "127.0.0.1") and pu.port:
                     ports_to_check.append((pu.port, "helper_service"))
-            except Exception as e: 
+            except Exception as e:
                 print(f"解析Helper URL失败(无头模式): {e}")
         if not check_all_required_ports(ports_to_check): return
 
     proxy_env = _configure_proxy_env_vars()
     cmd = build_launch_command(
-        "headless", 
-        launch_params["fastapi_port"], 
+        "headless",
+        launch_params["fastapi_port"],
         launch_params["camoufox_debug_port"],
         launch_params["stream_port_enabled"],
         launch_params["stream_port"],
@@ -1070,13 +1070,13 @@ def start_virtual_display_gui():
     if platform.system() != "Linux":
         messagebox.showwarning(get_text("warning_title"), "虚拟显示模式仅在Linux上受支持。")
         return
-    
+
     launch_params = _get_launch_parameters()
     if not launch_params: return
 
     if port_auto_check_var.get():
         ports_to_check = [
-            (launch_params["fastapi_port"], "fastapi"), 
+            (launch_params["fastapi_port"], "fastapi"),
             (launch_params["camoufox_debug_port"], "camoufox_debug")
         ]
         if launch_params["stream_port_enabled"] and launch_params["stream_port"] != 0:
@@ -1084,16 +1084,16 @@ def start_virtual_display_gui():
         if launch_params["helper_enabled"] and launch_params["helper_endpoint"]:
             try:
                 pu = urlparse(launch_params["helper_endpoint"])
-                if pu.hostname in ("localhost", "127.0.0.1") and pu.port: 
+                if pu.hostname in ("localhost", "127.0.0.1") and pu.port:
                     ports_to_check.append((pu.port, "helper_service"))
-            except Exception as e: 
+            except Exception as e:
                 print(f"解析Helper URL失败(虚拟显示模式): {e}")
         if not check_all_required_ports(ports_to_check): return
 
     proxy_env = _configure_proxy_env_vars()
     cmd = build_launch_command(
-        "virtual-display", 
-        launch_params["fastapi_port"], 
+        "virtual-display",
+        launch_params["fastapi_port"],
         launch_params["camoufox_debug_port"],
         launch_params["stream_port_enabled"],
         launch_params["stream_port"],
@@ -1129,7 +1129,7 @@ def monitor_llm_process_thread_target():
             target=enqueue_stream_output, args=(popen.stdout, f"{service_name}-stdout"), daemon=True
         )
         llm_service_process_info["stdout_thread"].start()
-    
+
     if popen.stderr:
         llm_service_process_info["stderr_thread"] = threading.Thread(
             target=enqueue_stream_output, args=(popen.stderr, f"{service_name}-stderr"), daemon=True
@@ -1182,7 +1182,7 @@ def _actually_launch_llm_service():
         output_area.config(state=tk.NORMAL)
         output_area.insert(tk.END, f"--- Starting {service_name} ---\n")
         output_area.config(state=tk.DISABLED)
-        
+
         effective_env = os.environ.copy()
         effective_env['PYTHONUNBUFFERED'] = '1' # Ensure unbuffered output for real-time logging
         effective_env['PYTHONIOENCODING'] = 'utf-8'
@@ -1198,7 +1198,7 @@ def _actually_launch_llm_service():
         )
         llm_service_process_info["popen"] = popen
         llm_service_process_info["service_name_key"] = service_name_key
-        
+
         update_status_bar("status_llm_starting", pid=popen.pid)
         logger.info(f"{service_name} started with PID: {popen.pid}")
 
@@ -1231,17 +1231,17 @@ def _check_llm_backend_and_launch_thread():
     # but for simplicity in this context, direct update_status_bar call is used.
     # Ensure update_status_bar is thread-safe or schedules GUI updates.
     # The existing update_status_bar uses root_widget.after_idle, which is good.
-    
+
     # Dynamically create the message keys for status bar to include the port
     backend_check_msg_key = "status_llm_backend_check" # Original key
     backend_ok_msg_key = "status_llm_backend_ok_starting"
     backend_fail_msg_key = "status_llm_backend_fail"
-    
+
     # It's better to pass the port as a parameter to get_text if the LANG_TEXTS are updated
     # For now, we'll just log the dynamic port separately.
     update_status_bar(backend_check_msg_key) # Still uses the generic message
     logger.info(f"Checking LLM backend service at localhost:{current_fastapi_port}...")
-    
+
     backend_ok = False
     try:
         with socket.create_connection(("localhost", current_fastapi_port), timeout=3) as sock:
@@ -1250,7 +1250,7 @@ def _check_llm_backend_and_launch_thread():
     except (socket.timeout, ConnectionRefusedError, OSError) as e:
         logger.warning(f"LLM backend service (localhost:{current_fastapi_port}) not responding: {e}")
         backend_ok = False
-    
+
     if root_widget: # Ensure GUI is still there
         if backend_ok:
             update_status_bar(backend_ok_msg_key, port=current_fastapi_port) # Pass port to fill placeholder
@@ -1258,7 +1258,7 @@ def _check_llm_backend_and_launch_thread():
         else:
             # Update status bar with the dynamic port for failure message
             update_status_bar(backend_fail_msg_key, port=current_fastapi_port)
-            
+
             # Show warning messagebox with the dynamic port
             # The status bar is already updated by update_status_bar,
             # so no need to manually set process_status_text_var or write to output_area here again for the same message.
@@ -1294,7 +1294,7 @@ def stop_llm_service_gui():
     if messagebox.askyesno(get_text("confirm_stop_llm_title"), get_text("confirm_stop_llm_message"), parent=root_widget):
         logger.info(f"Attempting to stop {service_name} (PID: {popen.pid})")
         update_status_bar("status_stopping_service", service_name=service_name, pid=popen.pid)
-        
+
         try:
             # Attempt graceful termination first
             if platform.system() == "Windows":
@@ -1319,7 +1319,7 @@ def stop_llm_service_gui():
                 popen.wait(timeout=2) # Wait for kill to take effect
                 update_status_bar("status_llm_stopped") # Assume killed
                 logger.info(f"{service_name} (PID: {popen.pid}) was force-killed.")
-            
+
         except Exception as e:
             logger.error(f"Error stopping {service_name} (PID: {popen.pid}): {e}", exc_info=True)
             update_status_bar("status_llm_stop_error")
@@ -1330,12 +1330,12 @@ def stop_llm_service_gui():
                 llm_service_process_info["stdout_thread"].join(timeout=0.5)
             if llm_service_process_info.get("stderr_thread") and llm_service_process_info["stderr_thread"].is_alive():
                 llm_service_process_info["stderr_thread"].join(timeout=0.5)
-            
+
             llm_service_process_info["popen"] = None
             llm_service_process_info["monitor_thread"] = None
             llm_service_process_info["stdout_thread"] = None
             llm_service_process_info["stderr_thread"] = None
-            
+
             # Clear related output from the main log area or add a "stopped" message
             output_area = managed_process_info.get("output_area")
             if output_area:
@@ -1361,7 +1361,7 @@ def query_port_and_display_pids_gui():
     camoufox_port = get_camoufox_debug_port_from_gui()
     ports_to_query_info.append({"port": camoufox_port, "type_key": "port_name_camoufox_debug", "type_name": get_text("port_name_camoufox_debug")})
     ports_desc_list.append(f"{get_text('port_name_camoufox_debug')}:{camoufox_port}")
-    
+
     # 3. Stream Proxy Port (if enabled)
     if stream_port_enabled_var.get():
         try:
@@ -1378,7 +1378,7 @@ def query_port_and_display_pids_gui():
 
 
     update_status_bar("querying_ports_status", ports_desc=", ".join(ports_desc_list))
-    
+
     if pid_listbox_widget and pid_list_lbl_frame_ref:
         pid_listbox_widget.delete(0, tk.END)
         pid_list_lbl_frame_ref.config(text=get_text("pids_on_multiple_ports_label")) # Update title
@@ -1387,7 +1387,7 @@ def query_port_and_display_pids_gui():
         for port_info in ports_to_query_info:
             current_port = port_info["port"]
             port_type_name = port_info["type_name"]
-            
+
             processes_on_current_port = find_processes_on_port(current_port)
             if processes_on_current_port:
                 found_any_process = True
@@ -1403,7 +1403,7 @@ def query_port_and_display_pids_gui():
                                         port_type=port_type_name,
                                         port_num=current_port)
                 pid_listbox_widget.insert(tk.END, display_text)
-        
+
         if not found_any_process and not any(find_processes_on_port(p["port"]) for p in ports_to_query_info): # Recheck if all are empty
              # If after checking all, still no processes, we can add a general "no pids found on queried ports"
              # but the per-port "not in use" message is usually clearer.
@@ -1520,8 +1520,8 @@ def stop_selected_pid_from_list_gui():
             messagebox.showinfo(get_text("info_title"), get_text("terminate_request_sent", pid=pid_to_stop, name=process_name_to_stop), parent=root_widget)
         else:
             # 普通权限停止失败，询问是否尝试管理员权限
-            if messagebox.askyesno(get_text("confirm_stop_pid_admin_title"), 
-                               get_text("confirm_stop_pid_admin_message", pid=pid_to_stop, name=process_name_to_stop), 
+            if messagebox.askyesno(get_text("confirm_stop_pid_admin_title"),
+                               get_text("confirm_stop_pid_admin_message", pid=pid_to_stop, name=process_name_to_stop),
                                parent=root_widget):
                 admin_kill_success = kill_process_pid_admin(pid_to_stop)
                 if admin_kill_success:
@@ -1547,14 +1547,14 @@ def kill_process_pid_admin(pid: int) -> bool:
                 logger.info(f"当前非管理员权限，使用PowerShell提升权限")
                 ps_cmd = f"Start-Process -Verb RunAs taskkill -ArgumentList '/PID {pid} /F /T'"
                 logger.debug(f"执行PowerShell命令: {ps_cmd}")
-                result = subprocess.run(["powershell", "-Command", ps_cmd], 
+                result = subprocess.run(["powershell", "-Command", ps_cmd],
                                      capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
                 logger.info(f"PowerShell命令结果: 返回码={result.returncode}, 输出={result.stdout}, 错误={result.stderr}")
                 success = result.returncode == 0
             else:
                 # 如果已经是管理员，则直接运行taskkill
                 logger.info(f"当前已是管理员权限，直接执行taskkill")
-                result = subprocess.run(["taskkill", "/PID", str(pid), "/F", "/T"], 
+                result = subprocess.run(["taskkill", "/PID", str(pid), "/F", "/T"],
                                      capture_output=True, text=True, creationflags=subprocess.CREATE_NO_WINDOW)
                 logger.info(f"Taskkill命令结果: 返回码={result.returncode}, 输出={result.stdout}, 错误={result.stderr}")
                 success = result.returncode == 0
@@ -1594,7 +1594,7 @@ def kill_process_pid_admin(pid: int) -> bool:
     except Exception as e:
         logger.error(f"使用管理员权限终止PID {pid}时出错: {e}", exc_info=True)
         success = False
-    
+
     logger.info(f"管理员权限终止进程 PID: {pid} 结果: {'成功' if success else '失败'}")
     return success
 
@@ -1616,8 +1616,8 @@ def kill_custom_pid_gui():
             messagebox.showinfo(get_text("info_title"), get_text("terminate_request_sent", pid=pid_to_kill, name=process_name_to_kill), parent=root_widget)
         else:
             # 普通权限停止失败，询问是否尝试管理员权限
-            if messagebox.askyesno(get_text("confirm_stop_pid_admin_title"), 
-                                get_text("confirm_stop_pid_admin_message", pid=pid_to_kill, name=process_name_to_kill), 
+            if messagebox.askyesno(get_text("confirm_stop_pid_admin_title"),
+                                get_text("confirm_stop_pid_admin_message", pid=pid_to_kill, name=process_name_to_kill),
                                 parent=root_widget):
                 admin_kill_success = kill_process_pid_admin(pid_to_kill)
                 if admin_kill_success:
@@ -1660,7 +1660,7 @@ def build_gui(root: tk.Tk):
 
     root_widget = root
     root.title(get_text("title"))
-    root.minsize(950, 600) 
+    root.minsize(950, 600)
 
     # 加载保存的配置
     config = load_config()
@@ -1702,11 +1702,11 @@ def build_gui(root: tk.Tk):
     menu_bar_ref.add_cascade(label="Language", menu=lang_menu)
     root.config(menu=menu_bar_ref)
 
-    # --- 主 PanedWindow 实现三栏 --- 
+    # --- 主 PanedWindow 实现三栏 ---
     main_paned_window = ttk.PanedWindow(root, orient=tk.HORIZONTAL)
     main_paned_window.pack(fill=tk.BOTH, expand=True, padx=5, pady=5)
 
-    # --- 左栏 Frame --- 
+    # --- 左栏 Frame ---
     left_frame_container = ttk.Frame(main_paned_window, padding="5")
     main_paned_window.add(left_frame_container, weight=3) # 增大左栏初始权重
     left_frame_container.columnconfigure(0, weight=1)
@@ -1723,18 +1723,18 @@ def build_gui(root: tk.Tk):
     port_section.grid(row=left_current_row, column=0, sticky="ew", padx=2, pady=(2,10))
     widgets_to_translate.append({"widget": port_section, "key": "port_section_label", "property": "text"})
     left_current_row += 1
-    
+
     # 添加重置按钮和服务关闭指南按钮
     port_controls_frame = ttk.Frame(port_section)
     port_controls_frame.pack(fill=tk.X, padx=5, pady=3)
     btn_reset = ttk.Button(port_controls_frame, text="", command=reset_to_defaults)
     btn_reset.pack(side=tk.LEFT, padx=(0,5))
     widgets_to_translate.append({"widget": btn_reset, "key": "reset_button"})
-    
+
     btn_closing_guide = ttk.Button(port_controls_frame, text="", command=show_service_closing_guide)
     btn_closing_guide.pack(side=tk.RIGHT, padx=(5,0))
     widgets_to_translate.append({"widget": btn_closing_guide, "key": "service_closing_guide_btn"})
-    
+
     # (内部控件保持在port_section中，使用pack使其紧凑)
     # FastAPI Port
     fastapi_frame = ttk.Frame(port_section)
@@ -1778,7 +1778,7 @@ def build_gui(root: tk.Tk):
     widgets_to_translate.append({"widget": lbl_helper_endpoint, "key": "helper_endpoint_label"})
     entry_helper_endpoint = ttk.Entry(helper_details_frame, textvariable=helper_endpoint_var)
     entry_helper_endpoint.pack(side=tk.LEFT, fill=tk.X, expand=True)
-    
+
     # 浏览器代理设置
     proxy_frame_outer = ttk.Frame(port_section)
     proxy_frame_outer.pack(fill=tk.X, padx=5, pady=3)
@@ -1792,7 +1792,7 @@ def build_gui(root: tk.Tk):
     widgets_to_translate.append({"widget": lbl_proxy_address, "key": "proxy_address_label"})
     entry_proxy_address = ttk.Entry(proxy_details_frame, textvariable=proxy_address_var)
     entry_proxy_address.pack(side=tk.LEFT, fill=tk.X, expand=True)
-    
+
     # Port auto check
     port_auto_check_frame = ttk.Frame(port_section)
     port_auto_check_frame.pack(fill=tk.X, padx=5, pady=3)
@@ -1832,12 +1832,12 @@ def build_gui(root: tk.Tk):
     btn_stop_llm_service = ttk.Button(launch_options_frame, text="", command=stop_llm_service_gui)
     btn_stop_llm_service.pack(fill=tk.X, padx=5, pady=3)
     widgets_to_translate.append({"widget": btn_stop_llm_service, "key": "stop_llm_service_btn"})
-    
+
     # 移除不再有用的"停止当前GUI管理的服务"按钮
     # btn_stop_service = ttk.Button(launch_options_frame, text="", command=stop_managed_service_gui)
     # btn_stop_service.pack(fill=tk.X, padx=5, pady=3)
     # widgets_to_translate.append({"widget": btn_stop_service, "key": "stop_gui_service_btn"})
-    
+
     # 认证文件管理 (移到左栏底部)
     auth_section_left = ttk.LabelFrame(left_frame_container, text="") # 重命名以区分
     auth_section_left.grid(row=left_current_row, column=0, sticky="ew", padx=2, pady=5)
@@ -1846,7 +1846,7 @@ def build_gui(root: tk.Tk):
     btn_manage_auth_left = ttk.Button(auth_section_left, text="", command=manage_auth_files_gui) # 重命名按钮
     btn_manage_auth_left.pack(fill=tk.X, padx=5, pady=5)
     widgets_to_translate.append({"widget": btn_manage_auth_left, "key": "manage_auth_files_btn"})
-    
+
     # 显示当前认证文件
     auth_display_frame = ttk.Frame(auth_section_left) # 放在认证管理部分内部
     auth_display_frame.pack(fill=tk.X, padx=5, pady=(0,5)) # 调整pady使其更紧凑
@@ -1862,27 +1862,27 @@ def build_gui(root: tk.Tk):
     spacer_frame_left.grid(row=left_current_row, column=0, sticky="nsew")
     left_frame_container.rowconfigure(left_current_row, weight=1) # 让这个spacer扩展
 
-    # --- 中栏 Frame --- 
+    # --- 中栏 Frame ---
     middle_frame_container = ttk.Frame(main_paned_window, padding="5")
     main_paned_window.add(middle_frame_container, weight=2) # 调整中栏初始权重
     middle_frame_container.columnconfigure(0, weight=1)
-    middle_frame_container.rowconfigure(0, weight=1) 
-    middle_frame_container.rowconfigure(1, weight=0) 
+    middle_frame_container.rowconfigure(0, weight=1)
+    middle_frame_container.rowconfigure(1, weight=0)
     # middle_frame_container.rowconfigure(2, weight=0) # 认证管理已移走
 
     middle_current_row = 0
     pid_section_frame = ttk.Frame(middle_frame_container)
     pid_section_frame.grid(row=middle_current_row, column=0, sticky="nsew", padx=2, pady=2)
     pid_section_frame.columnconfigure(0, weight=1)
-    pid_section_frame.rowconfigure(0, weight=1) 
+    pid_section_frame.rowconfigure(0, weight=1)
     middle_current_row +=1
-    
-    global pid_list_lbl_frame_ref 
+
+    global pid_list_lbl_frame_ref
     pid_list_lbl_frame_ref = ttk.LabelFrame(pid_section_frame, text=get_text("static_pid_list_title")) # 使用新的固定标题
     pid_list_lbl_frame_ref.grid(row=0, column=0, columnspan=2, sticky="nsew", padx=2, pady=2)
     pid_list_lbl_frame_ref.columnconfigure(0, weight=1)
     pid_list_lbl_frame_ref.rowconfigure(0, weight=1)
-    pid_listbox_widget = tk.Listbox(pid_list_lbl_frame_ref, height=7, exportselection=False) 
+    pid_listbox_widget = tk.Listbox(pid_list_lbl_frame_ref, height=7, exportselection=False)
     pid_listbox_widget.grid(row=0, column=0, padx=5, pady=5, sticky="nsew")
     scrollbar = ttk.Scrollbar(pid_list_lbl_frame_ref, orient="vertical", command=pid_listbox_widget.yview)
     scrollbar.grid(row=0, column=1, sticky="ns", padx=(0,5), pady=5)
@@ -1898,7 +1898,7 @@ def build_gui(root: tk.Tk):
     btn_stop_pid = ttk.Button(pid_buttons_frame, text="", command=stop_selected_pid_from_list_gui)
     btn_stop_pid.grid(row=0, column=1, sticky="ew", padx=(2,0))
     widgets_to_translate.append({"widget": btn_stop_pid, "key": "stop_selected_pid_btn"})
-    
+
     # Test Proxy Connectivity Button
     btn_test_proxy = ttk.Button(pid_buttons_frame, text="", command=test_proxy_connectivity_gui)
     btn_test_proxy.grid(row=1, column=0, columnspan=2, sticky="ew", padx=0, pady=(3,0)) # Place below query/stop
@@ -1915,11 +1915,11 @@ def build_gui(root: tk.Tk):
     btn_kill_custom_pid.pack(side=tk.LEFT, padx=5, pady=5)
     widgets_to_translate.append({"widget": btn_kill_custom_pid, "key": "kill_custom_pid_btn"})
 
-    # --- 右栏 Frame --- 
+    # --- 右栏 Frame ---
     right_frame_container = ttk.Frame(main_paned_window, padding="5")
     main_paned_window.add(right_frame_container, weight=2) # 调整右栏初始权重，使其相对小一些
     right_frame_container.columnconfigure(0, weight=1)
-    right_frame_container.rowconfigure(1, weight=1) 
+    right_frame_container.rowconfigure(1, weight=1)
     right_current_row = 0
     status_area_frame = ttk.LabelFrame(right_frame_container, text="")
     status_area_frame.grid(row=right_current_row, column=0, padx=2, pady=2, sticky="ew")
@@ -1956,7 +1956,7 @@ def _get_launch_parameters() -> Optional[Dict[str, Any]]:
     try:
         params["fastapi_port"] = get_fastapi_port_from_gui()
         params["camoufox_debug_port"] = get_camoufox_debug_port_from_gui()
-        
+
         params["stream_port_enabled"] = stream_port_enabled_var.get()
         sp_val_str = stream_port_var.get().strip()
         if params["stream_port_enabled"]:
@@ -1966,10 +1966,10 @@ def _get_launch_parameters() -> Optional[Dict[str, Any]]:
                 return None
         else:
             params["stream_port"] = 0 # 如果未启用，则端口视为0（禁用）
-            
+
         params["helper_enabled"] = helper_enabled_var.get()
         params["helper_endpoint"] = helper_endpoint_var.get().strip() if params["helper_enabled"] else ""
-        
+
         return params
     except ValueError: # 通常来自 int() 转换失败
         messagebox.showwarning(get_text("warning_title"), get_text("enter_valid_port_warn")) # 或者更具体的错误
@@ -1998,7 +1998,7 @@ def on_app_close_main():
                     popen.terminate() # TerminateProcess on Windows
                 else:
                     popen.send_signal(signal.SIGINT)
-                
+
                 # Give it a very short time to exit, don't block GUI closing for too long
                 popen.wait(timeout=1.5)
                 logger.info(f"{service_name} (PID: {popen.pid}) hopefully stopped during app close.")
@@ -2009,7 +2009,7 @@ def on_app_close_main():
                 logger.error(f"Error stopping {service_name} during app close: {e}")
             finally:
                 llm_service_process_info["popen"] = None # Clear it
-    
+
     # 服务都是在独立终端中启动的，所以只需确认用户是否想关闭GUI
     if messagebox.askyesno(get_text("confirm_quit_title"), get_text("confirm_quit_message"), parent=root_widget):
         if root_widget:

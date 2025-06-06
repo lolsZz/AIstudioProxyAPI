@@ -418,7 +418,7 @@ def get_proxy_from_gsettings():
                 value = process_result.stdout.strip()
                 if value.startswith("'") and value.endswith("'"): # Remove surrounding single quotes
                     value = value[1:-1]
-                
+
                 # If after stripping quotes, value is empty, or it's a gsettings "empty" representation
                 if not value or value == "''" or value == "@as []" or value == "[]":
                     return None
@@ -457,7 +457,7 @@ def get_proxy_from_gsettings():
                     return f"http://{https_host}:{https_port}"
             except ValueError:
                 pass
-    
+
     return None
 
 # --- 主执行逻辑 ---
@@ -468,7 +468,7 @@ if __name__ == "__main__":
         setup_launcher_logging(log_level=logging.INFO)
 
     parser = argparse.ArgumentParser(
-        description="Camoufox 浏览器模拟与 FastAPI 代理服务器的启动器。",
+        description="Camoufox browser simulation and FastAPI proxy server launcher.",
         formatter_class=argparse.ArgumentDefaultsHelpFormatter
     )
     # 内部参数 (from dev)
@@ -480,7 +480,7 @@ if __name__ == "__main__":
 
 
     # 用户可见参数 (merged from dev and helper)
-    parser.add_argument("--server-port", type=int, default=DEFAULT_SERVER_PORT, help=f"FastAPI 服务器监听的端口号 (默认: {DEFAULT_SERVER_PORT})")
+    parser.add_argument("--server-port", type=int, default=DEFAULT_SERVER_PORT, help=f"FastAPI server listening port number (default: {DEFAULT_SERVER_PORT})")
     parser.add_argument(
         "--stream-port",
         type=int,
@@ -506,10 +506,10 @@ if __name__ == "__main__":
         help=f"内部 Camoufox 实例监听的调试端口号 (默认: {DEFAULT_CAMOUFOX_PORT})"
     )
     mode_selection_group = parser.add_mutually_exclusive_group() # from dev (more options)
-    mode_selection_group.add_argument("--debug", action="store_true", help="启动调试模式 (浏览器界面可见，允许交互式认证)")
-    mode_selection_group.add_argument("--headless", action="store_true", help="启动无头模式 (浏览器无界面，需要预先保存的认证文件)")
-    mode_selection_group.add_argument("--virtual-display", action="store_true", help="启动无头模式并使用虚拟显示 (Xvfb, 仅限 Linux)") # from dev
-    
+    mode_selection_group.add_argument("--debug", action="store_true", help="Launch debug mode (browser interface visible, allows interactive authentication)")
+    mode_selection_group.add_argument("--headless", action="store_true", help="Launch headless mode (browser without interface, requires pre-saved authentication files)")
+    mode_selection_group.add_argument("--virtual-display", action="store_true", help="Launch headless mode with virtual display (Xvfb, Linux only)")  # from dev
+
     # --camoufox-os 参数已移除，将由脚本内部自动检测系统并设置
     parser.add_argument( # from dev
         "--active-auth-json", type=str, default=None,
@@ -583,7 +583,7 @@ if __name__ == "__main__":
                     print(f"--- [内部Camoufox启动] --internal-camoufox-proxy 未提供，环境变量 HTTP_PROXY/HTTPS_PROXY 未设置，gsettings 未找到代理。将不使用代理。 ---", flush=True)
             else:
                 print(f"--- [内部Camoufox启动] --internal-camoufox-proxy 未提供，且环境变量 HTTP_PROXY/HTTPS_PROXY 未设置。将不使用代理。 ---", flush=True)
-        
+
         camoufox_proxy_internal = actual_proxy_to_use # 更新此变量以供后续使用
         camoufox_os_internal = args.internal_camoufox_os
 
@@ -591,7 +591,7 @@ if __name__ == "__main__":
         print(f"--- [内部Camoufox启动] 模式: {internal_mode_arg}, 认证文件: {os.path.basename(auth_file) if auth_file else '无'}, "
               f"Camoufox端口: {camoufox_port_internal}, 代理: {camoufox_proxy_internal or '无'}, 模拟OS: {camoufox_os_internal} ---", flush=True)
         print(f"--- [内部Camoufox启动] 正在调用 camoufox.server.launch_server ... ---", flush=True)
-        
+
         try:
             launch_args_for_internal_camoufox = {
                 "port": camoufox_port_internal,
@@ -606,7 +606,7 @@ if __name__ == "__main__":
             # 如果 camoufox_proxy_internal 是 None 或空字符串，"proxy" 键就不会被添加。
             if auth_file:
                 launch_args_for_internal_camoufox["storage_state"] = auth_file
-            
+
             if "," in camoufox_os_internal:
                 camoufox_os_list_internal = [s.strip().lower() for s in camoufox_os_internal.split(',')]
                 valid_os_values = ["windows", "macos", "linux"]
@@ -616,10 +616,10 @@ if __name__ == "__main__":
                 launch_args_for_internal_camoufox['os'] = camoufox_os_list_internal
             elif camoufox_os_internal.lower() in ["windows", "macos", "linux"]:
                 launch_args_for_internal_camoufox['os'] = camoufox_os_internal.lower()
-            elif camoufox_os_internal.lower() != "random": 
+            elif camoufox_os_internal.lower() != "random":
                 print(f"❌ 内部Camoufox启动错误: camoufox_os_internal 值无效: '{camoufox_os_internal}'", file=sys.stderr)
                 sys.exit(1)
-            
+
             print(f"  传递给 launch_server 的参数: {launch_args_for_internal_camoufox}", flush=True)
 
             if internal_mode_arg == 'headless':
@@ -628,13 +628,13 @@ if __name__ == "__main__":
                 launch_server(headless="virtual", **launch_args_for_internal_camoufox)
             elif internal_mode_arg == 'debug':
                 launch_server(headless=False, **launch_args_for_internal_camoufox)
-            
+
             print(f"--- [内部Camoufox启动] camoufox.server.launch_server ({internal_mode_arg}模式) 调用已完成/阻塞。脚本将等待其结束。 ---", flush=True)
         except Exception as e_internal_launch_final:
             print(f"❌ 错误 (--internal-launch-mode): 执行 camoufox.server.launch_server 时发生异常: {e_internal_launch_final}", file=sys.stderr, flush=True)
             traceback.print_exc(file=sys.stderr)
             sys.exit(1)
-        sys.exit(0) 
+        sys.exit(0)
 
     # --- 主启动器逻辑 ---
     logger.info("🚀 Camoufox 启动器开始运行 🚀")
@@ -642,7 +642,7 @@ if __name__ == "__main__":
     ensure_auth_dirs_exist()
     check_dependencies()
     logger.info("=================================================")
-    
+
     deprecated_auth_state_path = os.path.join(os.path.dirname(__file__), "auth_state.json")
     if os.path.exists(deprecated_auth_state_path):
         logger.warning(f"检测到已弃用的认证文件: {deprecated_auth_state_path}。此文件不再被直接使用。")
@@ -657,7 +657,7 @@ if __name__ == "__main__":
         final_launch_mode = 'virtual_headless'
         if platform.system() != "Linux":
             logger.warning("⚠️ --virtual-display 模式主要为 Linux 设计。在非 Linux 系统上，其行为可能与标准无头模式相同或导致 Camoufox 内部错误。")
-    else: 
+    else:
         logger.info("--- 请选择启动模式 (未通过命令行参数指定) ---")
         prompt_options_text = "[1] 无头模式, [2] 调试模式"
         valid_choices = {'1': 'headless', '2': 'debug'}
@@ -692,14 +692,14 @@ if __name__ == "__main__":
         pids_on_port = find_pids_on_port(server_target_port)
         if pids_on_port:
             logger.warning(f"     识别到以下进程 PID 可能占用了端口 {server_target_port}: {pids_on_port}")
-            if final_launch_mode == 'debug': 
+            if final_launch_mode == 'debug':
                 sys.stderr.flush()
                 # Using input_with_timeout for consistency, though timeout might not be strictly needed here
                 choice = input_with_timeout(f"     是否尝试终止这些进程？ (y/n, 输入 n 将继续并可能导致启动失败, 15s超时): ", 15).strip().lower()
                 if choice == 'y':
                     logger.info("     用户选择尝试终止进程...")
                     all_killed = all(kill_process_interactive(pid) for pid in pids_on_port)
-                    time.sleep(2) 
+                    time.sleep(2)
                     if not is_port_in_use(server_target_port, host=uvicorn_bind_host):
                         logger.info(f"     ✅ 端口 {server_target_port} (主机 {uvicorn_bind_host}) 现在可用。")
                         port_is_available = True
@@ -707,11 +707,11 @@ if __name__ == "__main__":
                         logger.error(f"     ❌ 尝试终止后，端口 {server_target_port} (主机 {uvicorn_bind_host}) 仍然被占用。")
                 else:
                     logger.info("     用户选择不自动终止或超时。将继续尝试启动服务器。")
-            else: 
+            else:
                  logger.error(f"     无头模式下，不会尝试自动终止占用端口的进程。服务器启动可能会失败。")
         else:
             logger.warning(f"     未能自动识别占用端口 {server_target_port} 的进程。服务器启动可能会失败。")
-        
+
         if not port_is_available:
             logger.warning(f"--- 端口 {server_target_port} 仍可能被占用。继续启动服务器，它将自行处理端口绑定。 ---")
     else:
@@ -726,7 +726,7 @@ if __name__ == "__main__":
     if args.active_auth_json:
         logger.info(f"  尝试使用 --active-auth-json 参数提供的路径: '{args.active_auth_json}'")
         candidate_path = os.path.expanduser(args.active_auth_json)
-        
+
         # 尝试解析路径:
         # 1. 作为绝对路径
         if os.path.isabs(candidate_path) and os.path.exists(candidate_path) and os.path.isfile(candidate_path):
@@ -750,7 +750,7 @@ if __name__ == "__main__":
                         path_in_saved = os.path.join(SAVED_AUTH_DIR, candidate_path)
                         if os.path.exists(path_in_saved) and os.path.isfile(path_in_saved):
                             effective_active_auth_json_path = path_in_saved
-        
+
         if effective_active_auth_json_path:
             logger.info(f"  将使用通过 --active-auth-json 解析的认证文件: {effective_active_auth_json_path}")
         else:
@@ -800,7 +800,7 @@ if __name__ == "__main__":
                                 available_profiles.append({"name": f"{dir_label}/{filename}", "path": full_path})
                         except OSError as e:
                             logger.warning(f"   ⚠️ 警告: 无法读取目录 '{profile_dir_path_str}': {e}")
-                
+
                 if available_profiles:
                     # 对可用配置文件列表进行排序，以确保一致的显示顺序
                     available_profiles.sort(key=lambda x: x['name'])
@@ -832,18 +832,18 @@ if __name__ == "__main__":
 
     # 构建 Camoufox 内部启动命令 (from dev)
     camoufox_internal_cmd_args = [
-        PYTHON_EXECUTABLE, '-u', __file__, 
+        PYTHON_EXECUTABLE, '-u', __file__,
         '--internal-launch-mode', final_launch_mode
     ]
     if effective_active_auth_json_path:
         camoufox_internal_cmd_args.extend(['--internal-auth-file', effective_active_auth_json_path])
-    
+
     camoufox_internal_cmd_args.extend(['--internal-camoufox-os', simulated_os_for_camoufox])
     camoufox_internal_cmd_args.extend(['--internal-camoufox-port', str(args.camoufox_debug_port)])
 
     camoufox_popen_kwargs = {'stdout': subprocess.PIPE, 'stderr': subprocess.PIPE, 'env': os.environ.copy()}
-    camoufox_popen_kwargs['env']['PYTHONIOENCODING'] = 'utf-8' 
-    if sys.platform != "win32" and final_launch_mode != 'debug': 
+    camoufox_popen_kwargs['env']['PYTHONIOENCODING'] = 'utf-8'
+    if sys.platform != "win32" and final_launch_mode != 'debug':
         camoufox_popen_kwargs['start_new_session'] = True
     elif sys.platform == "win32" and (final_launch_mode == 'headless' or final_launch_mode == 'virtual_headless'):
          camoufox_popen_kwargs['creationflags'] = subprocess.CREATE_NO_WINDOW
@@ -853,7 +853,7 @@ if __name__ == "__main__":
         logger.info(f"  将执行 Camoufox 内部启动命令: {' '.join(camoufox_internal_cmd_args)}")
         camoufox_proc = subprocess.Popen(camoufox_internal_cmd_args, **camoufox_popen_kwargs)
         logger.info(f"  Camoufox 内部进程已启动 (PID: {camoufox_proc.pid})。正在等待 WebSocket 端点输出 (最长 {ENDPOINT_CAPTURE_TIMEOUT} 秒)...")
-        
+
         camoufox_output_q = queue.Queue()
         camoufox_stdout_reader = threading.Thread(target=_enqueue_output, args=(camoufox_proc.stdout, "stdout", camoufox_output_q, camoufox_proc.pid), daemon=True)
         camoufox_stderr_reader = threading.Thread(target=_enqueue_output, args=(camoufox_proc.stderr, "stderr", camoufox_output_q, camoufox_proc.pid), daemon=True)
@@ -868,14 +868,14 @@ if __name__ == "__main__":
                 break
             try:
                 stream_name, line_from_camoufox = camoufox_output_q.get(timeout=0.2)
-                if line_from_camoufox is None: 
+                if line_from_camoufox is None:
                     camoufox_ended_streams_count += 1
                     logger.debug(f"  [InternalCamoufox-{stream_name}-PID:{camoufox_proc.pid}] 输出流已关闭 (EOF)。")
-                    if camoufox_ended_streams_count >= 2: 
+                    if camoufox_ended_streams_count >= 2:
                         logger.info(f"  Camoufox 内部进程 (PID: {camoufox_proc.pid}) 的所有输出流均已关闭。")
                         break
                     continue
-                
+
                 log_line_content = f"[InternalCamoufox-{stream_name}-PID:{camoufox_proc.pid}]: {line_from_camoufox.rstrip()}"
                 if stream_name == "stderr" or "ERROR" in line_from_camoufox.upper() or "❌" in line_from_camoufox:
                     logger.warning(log_line_content)
@@ -886,22 +886,22 @@ if __name__ == "__main__":
                 if ws_match:
                     captured_ws_endpoint = ws_match.group(1)
                     logger.info(f"  ✅ 成功从 Camoufox 内部进程捕获到 WebSocket 端点: {captured_ws_endpoint[:40]}...")
-                    break 
+                    break
             except queue.Empty:
                 continue
-        
+
         if camoufox_stdout_reader.is_alive(): camoufox_stdout_reader.join(timeout=1.0)
         if camoufox_stderr_reader.is_alive(): camoufox_stderr_reader.join(timeout=1.0)
 
         if not captured_ws_endpoint and (camoufox_proc and camoufox_proc.poll() is None):
             logger.error(f"  ❌ 未能在 {ENDPOINT_CAPTURE_TIMEOUT} 秒内从 Camoufox 内部进程 (PID: {camoufox_proc.pid}) 捕获到 WebSocket 端点。")
             logger.error("  Camoufox 内部进程仍在运行，但未输出预期的 WebSocket 端点。请检查其日志或行为。")
-            cleanup() 
+            cleanup()
             sys.exit(1)
         elif not captured_ws_endpoint and (camoufox_proc and camoufox_proc.poll() is not None):
             logger.error(f"  ❌ Camoufox 内部进程已退出，且未能捕获到 WebSocket 端点。")
             sys.exit(1)
-        elif not captured_ws_endpoint: 
+        elif not captured_ws_endpoint:
             logger.error(f"  ❌ 未能捕获到 WebSocket 端点。")
             sys.exit(1)
 
@@ -952,10 +952,10 @@ if __name__ == "__main__":
 
     # --- 步骤 4: 设置环境变量并准备启动 FastAPI/Uvicorn 服务器 (from dev) ---
     logger.info("--- 步骤 4: 设置环境变量并准备启动 FastAPI/Uvicorn 服务器 ---")
-    
+
     if captured_ws_endpoint:
         os.environ['CAMOUFOX_WS_ENDPOINT'] = captured_ws_endpoint
-    else: 
+    else:
         logger.error("  严重逻辑错误: WebSocket 端点未捕获，但程序仍在继续。")
         sys.exit(1)
 
@@ -978,14 +978,14 @@ if __name__ == "__main__":
     elif camoufox_os_param_lower == "linux": host_os_for_shortcut_env = "Linux"
     if host_os_for_shortcut_env:
         os.environ['HOST_OS_FOR_SHORTCUT'] = host_os_for_shortcut_env
-    elif 'HOST_OS_FOR_SHORTCUT' in os.environ: 
+    elif 'HOST_OS_FOR_SHORTCUT' in os.environ:
         del os.environ['HOST_OS_FOR_SHORTCUT']
-    
+
     logger.info(f"  为 server.app 设置的环境变量:")
     env_keys_to_log = [
-        'CAMOUFOX_WS_ENDPOINT', 'LAUNCH_MODE', 'SERVER_LOG_LEVEL', 
-        'SERVER_REDIRECT_PRINT', 'DEBUG_LOGS_ENABLED', 'TRACE_LOGS_ENABLED', 
-        'ACTIVE_AUTH_JSON_PATH', 'AUTO_SAVE_AUTH', 'AUTH_SAVE_TIMEOUT', 
+        'CAMOUFOX_WS_ENDPOINT', 'LAUNCH_MODE', 'SERVER_LOG_LEVEL',
+        'SERVER_REDIRECT_PRINT', 'DEBUG_LOGS_ENABLED', 'TRACE_LOGS_ENABLED',
+        'ACTIVE_AUTH_JSON_PATH', 'AUTO_SAVE_AUTH', 'AUTH_SAVE_TIMEOUT',
         'SERVER_PORT_INFO', 'HOST_OS_FOR_SHORTCUT',
         'HELPER_ENDPOINT', 'HELPER_SAPISID', 'STREAM_PORT' # Added helper env vars
     ]
@@ -1014,5 +1014,5 @@ if __name__ == "__main__":
     except Exception as e_uvicorn:
         logger.critical(f"❌ 运行 Uvicorn 时发生致命错误: {e_uvicorn}", exc_info=True)
         sys.exit(1) # Ensure launcher exits if Uvicorn fails critically
-    
+
     logger.info("🚀 Camoufox 启动器主逻辑执行完毕 🚀")

@@ -12,15 +12,15 @@ Backward Compatibility:
 All original config/ functionality is preserved and accessible.
 """
 
-# 从各个配置文件导入所有配置项
+# Import all configuration items from various config files
 from .constants import *
 from .timeouts import *
 from .selectors import *
 from .settings import *
 
-# 显式导出主要配置项（用于IDE自动完成和类型检查）
+# Explicitly export main configuration items (for IDE auto-completion and type checking)
 __all__ = [
-    # 常量配置
+    # Constant configuration
     'MODEL_NAME',
     'CHAT_COMPLETION_ID_PREFIX',
     'DEFAULT_FALLBACK_MODEL_ID',
@@ -51,7 +51,7 @@ __all__ = [
     'WAIT_FOR_ELEMENT_TIMEOUT_MS',
     'PSEUDO_STREAM_DELAY',
 
-    # 选择器配置
+    # Selector configuration
     'PROMPT_TEXTAREA_SELECTOR',
     'INPUT_SELECTOR',
     'INPUT_SELECTOR2',

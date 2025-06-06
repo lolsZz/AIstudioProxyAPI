@@ -3,17 +3,17 @@
 导出所有配置项，便于其他模块导入使用
 """
 
-# 从各个配置文件导入所有配置项
+# Import all configuration items from various config files
 from .constants import *
 from .timeouts import *
 from .selectors import *
 from .settings import *
 
-# 显式导出主要配置项（用于IDE自动完成和类型检查）
+# Explicitly export main configuration items (for IDE auto-completion and type checking)
 __all__ = [
-    # 常量配置
+    # Constant configuration
     'MODEL_NAME',
-    'CHAT_COMPLETION_ID_PREFIX', 
+    'CHAT_COMPLETION_ID_PREFIX',
     'DEFAULT_FALLBACK_MODEL_ID',
     'DEFAULT_TEMPERATURE',
     'DEFAULT_MAX_OUTPUT_TOKENS',
@@ -25,7 +25,7 @@ __all__ = [
     'USER_INPUT_END_MARKER_SERVER',
     'EXCLUDED_MODELS_FILENAME',
     'STREAM_TIMEOUT_LOG_STATE',
-    
+
     # 超时配置
     'RESPONSE_COMPLETION_TIMEOUT',
     'INITIAL_WAIT_MS_BEFORE_POLLING',
@@ -41,8 +41,8 @@ __all__ = [
     'CLIPBOARD_READ_TIMEOUT_MS',
     'WAIT_FOR_ELEMENT_TIMEOUT_MS',
     'PSEUDO_STREAM_DELAY',
-    
-    # 选择器配置
+
+    # Selector configuration
     'PROMPT_TEXTAREA_SELECTOR',
     'INPUT_SELECTOR',
     'INPUT_SELECTOR2',
@@ -65,7 +65,7 @@ __all__ = [
     'MAT_CHIP_REMOVE_BUTTON_SELECTOR',
     'TOP_P_INPUT_SELECTOR',
     'TEMPERATURE_INPUT_SELECTOR',
-    
+
     # 设置配置
     'DEBUG_LOGS_ENABLED',
     'TRACE_LOGS_ENABLED',
@@ -77,9 +77,9 @@ __all__ = [
     'LOG_DIR',
     'APP_LOG_FILE_PATH',
     'NO_PROXY_ENV',
-    
+
     # 工具函数
     'get_environment_variable',
     'get_boolean_env',
     'get_int_env',
-] 
+]

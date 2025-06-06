@@ -1,5 +1,5 @@
 # --- browser_utils/operations.py ---
-# 浏览器页面操作相关功能模块
+# Browser page operations functionality module
 
 import asyncio
 import time
@@ -10,14 +10,14 @@ from typing import Optional, Any, List, Dict, Callable, Set
 
 from playwright.async_api import Page as AsyncPage, Locator, Error as PlaywrightAsyncError
 
-# 导入配置和模型
+# Import configuration and models
 from config import *
 from models import ClientDisconnectedError
 
 logger = logging.getLogger("AIStudioProxyServer")
 
 async def get_raw_text_content(response_element: Locator, previous_text: str, req_id: str) -> str:
-    """从响应元素获取原始文本内容"""
+    """Get raw text content from response element"""
     raw_text = previous_text
     try:
         await response_element.wait_for(state='attached', timeout=1000)
@@ -26,9 +26,9 @@ async def get_raw_text_content(response_element: Locator, previous_text: str, re
         try:
             await pre_element.wait_for(state='visible', timeout=250)
             pre_found_and_visible = True
-        except PlaywrightAsyncError: 
+        except PlaywrightAsyncError:
             pass
-        
+
         if pre_found_and_visible:
             try:
                 raw_text = await pre_element.inner_text(timeout=500)
@@ -46,22 +46,23 @@ async def get_raw_text_content(response_element: Locator, previous_text: str, re
             logger.debug(f"[{req_id}] (获取原始文本) 响应元素未准备好: {e_parent}")
     except Exception as e_unexpected:
         logger.warning(f"[{req_id}] (获取原始文本) 意外错误: {e_unexpected}")
-    
+
     if raw_text != previous_text:
         if DEBUG_LOGS_ENABLED:
             preview = raw_text[:100].replace('\n', '\\n')
-            logger.debug(f"[{req_id}] (获取原始文本) 文本已更新，长度: {len(raw_text)}，预览: '{preview}...'")
+            logger.debug(f"[{req_id}] (get raw text) Text updated, length: {len(raw_text)}, preview: '{preview}...'")
     return raw_text
 
+
 async def _handle_model_list_response(response: Any):
-    """处理模型列表响应"""
+    """Handle model list response"""
     # 需要访问全局变量
     import server
     global_model_list_raw_json = getattr(server, 'global_model_list_raw_json', None)
     parsed_model_list = getattr(server, 'parsed_model_list', [])
     model_list_fetch_event = getattr(server, 'model_list_fetch_event', None)
     excluded_model_ids = getattr(server, 'excluded_model_ids', set())
-    
+
     if MODELS_ENDPOINT_URL_CONTAINS in response.url and response.ok:
         logger.info(f"捕获到潜在的模型列表响应来自: {response.url} (状态: {response.status})")
         try:
@@ -92,35 +93,35 @@ async def _handle_model_list_response(response: Any):
                             break
                     if models_array_container is None:
                         logger.warning("在字典响应中未能自动定位模型列表数组。")
-                        if model_list_fetch_event and not model_list_fetch_event.is_set(): 
+                        if model_list_fetch_event and not model_list_fetch_event.is_set():
                             model_list_fetch_event.set()
                         return
             else:
                 logger.warning(f"接收到的模型列表数据既不是列表也不是字典: {type(data)}")
-                if model_list_fetch_event and not model_list_fetch_event.is_set(): 
+                if model_list_fetch_event and not model_list_fetch_event.is_set():
                     model_list_fetch_event.set()
                 return
-            
+
             if models_array_container is not None:
                 new_parsed_list = []
                 for entry_in_container in models_array_container:
                     model_fields_list = None
                     if isinstance(entry_in_container, dict):
                         potential_id = entry_in_container.get('id', entry_in_container.get('model_id', entry_in_container.get('modelId')))
-                        if potential_id: 
+                        if potential_id:
                             model_fields_list = entry_in_container
-                        else: 
+                        else:
                             model_fields_list = list(entry_in_container.values())
                     elif isinstance(entry_in_container, list):
                         model_fields_list = entry_in_container
                     else:
                         logger.debug(f"Skipping entry of unknown type: {type(entry_in_container)}")
                         continue
-                    
+
                     if not model_fields_list:
                         logger.debug("Skipping entry because model_fields_list is empty or None.")
                         continue
-                    
+
                     model_id_path_str = None
                     display_name_candidate = ""
                     description_candidate = "N/A"
@@ -129,7 +130,7 @@ async def _handle_model_list_response(response: Any):
                     default_temperature_val = 1.0
                     supported_max_output_tokens_val = None
                     current_model_id_for_log = "UnknownModelYet"
-                    
+
                     try:
                         if isinstance(model_fields_list, list):
                             if not (len(model_fields_list) > 0 and isinstance(model_fields_list[0], (str, int, float))):
@@ -139,7 +140,7 @@ async def _handle_model_list_response(response: Any):
                             current_model_id_for_log = model_id_path_str.split('/')[-1] if model_id_path_str and '/' in model_id_path_str else model_id_path_str
                             display_name_candidate = str(model_fields_list[3]) if len(model_fields_list) > 3 else ""
                             description_candidate = str(model_fields_list[4]) if len(model_fields_list) > 4 else "N/A"
-                            
+
                             if len(model_fields_list) > 6 and model_fields_list[6] is not None:
                                 try:
                                     val_int = int(model_fields_list[6])
@@ -147,7 +148,7 @@ async def _handle_model_list_response(response: Any):
                                     supported_max_output_tokens_val = val_int
                                 except (ValueError, TypeError):
                                     logger.warning(f"模型 {current_model_id_for_log}: 无法将列表索引6的值 '{model_fields_list[6]}' 解析为 max_output_tokens。")
-                            
+
                             if len(model_fields_list) > 9 and model_fields_list[9] is not None:
                                 try:
                                     raw_top_p = float(model_fields_list[9])
@@ -158,13 +159,13 @@ async def _handle_model_list_response(response: Any):
                                         default_top_p_val = raw_top_p
                                 except (ValueError, TypeError):
                                     logger.warning(f"模型 {current_model_id_for_log}: 无法将列表索引9的值 '{model_fields_list[9]}' 解析为 top_p。")
-                                    
+
                         elif isinstance(model_fields_list, dict):
                             model_id_path_str = str(model_fields_list.get('id', model_fields_list.get('model_id', model_fields_list.get('modelId'))))
                             current_model_id_for_log = model_id_path_str.split('/')[-1] if model_id_path_str and '/' in model_id_path_str else model_id_path_str
                             display_name_candidate = str(model_fields_list.get('displayName', model_fields_list.get('display_name', model_fields_list.get('name', ''))))
                             description_candidate = str(model_fields_list.get('description', "N/A"))
-                            
+
                             mot_parsed = model_fields_list.get('maxOutputTokens', model_fields_list.get('defaultMaxOutputTokens', model_fields_list.get('outputTokenLimit')))
                             if mot_parsed is not None:
                                 try:
@@ -173,7 +174,7 @@ async def _handle_model_list_response(response: Any):
                                     supported_max_output_tokens_val = val_int
                                 except (ValueError, TypeError):
                                      logger.warning(f"模型 {current_model_id_for_log}: 无法将字典值 '{mot_parsed}' 解析为 max_output_tokens。")
-                            
+
                             top_p_parsed = model_fields_list.get('topP', model_fields_list.get('defaultTopP'))
                             if top_p_parsed is not None:
                                 try:
@@ -185,10 +186,10 @@ async def _handle_model_list_response(response: Any):
                                         default_top_p_val = raw_top_p
                                 except (ValueError, TypeError):
                                     logger.warning(f"模型 {current_model_id_for_log}: 无法将字典值 '{top_p_parsed}' 解析为 top_p。")
-                            
+
                             temp_parsed = model_fields_list.get('temperature', model_fields_list.get('defaultTemperature'))
                             if temp_parsed is not None:
-                                try: 
+                                try:
                                     default_temperature_val = float(temp_parsed)
                                 except (ValueError, TypeError):
                                     logger.warning(f"模型 {current_model_id_for_log}: 无法将字典值 '{temp_parsed}' 解析为 temperature。")
@@ -198,21 +199,21 @@ async def _handle_model_list_response(response: Any):
                     except Exception as e_parse_fields:
                         logger.error(f"解析模型字段时出错 for entry {str(entry_in_container)[:100]}: {e_parse_fields}")
                         continue
-                    
+
                     if model_id_path_str and model_id_path_str.lower() != "none":
                         simple_model_id_str = model_id_path_str.split('/')[-1] if '/' in model_id_path_str else model_id_path_str
                         if simple_model_id_str in excluded_model_ids:
                             logger.info(f"模型 '{simple_model_id_str}' 在排除列表 excluded_model_ids 中，已跳过。")
                             continue
-                        
+
                         final_display_name_str = display_name_candidate if display_name_candidate else simple_model_id_str.replace("-", " ").title()
                         model_entry_dict = {
-                            "id": simple_model_id_str, 
-                            "object": "model", 
+                            "id": simple_model_id_str,
+                            "object": "model",
                             "created": int(time.time()),
-                            "owned_by": "ai_studio", 
+                            "owned_by": "ai_studio",
                             "display_name": final_display_name_str,
-                            "description": description_candidate, 
+                            "description": description_candidate,
                             "raw_model_path": model_id_path_str,
                             "default_temperature": default_temperature_val,
                             "default_max_output_tokens": default_max_output_tokens_val,
@@ -222,7 +223,7 @@ async def _handle_model_list_response(response: Any):
                         new_parsed_list.append(model_entry_dict)
                     else:
                         logger.debug(f"Skipping entry due to invalid model_id_path: {model_id_path_str} from entry {str(entry_in_container)[:100]}")
-                
+
                 if new_parsed_list:
                     server.parsed_model_list = sorted(new_parsed_list, key=lambda m: m.get('display_name', '').lower())
                     server.global_model_list_raw_json = json.dumps({"data": server.parsed_model_list, "object": "list"})
@@ -231,15 +232,15 @@ async def _handle_model_list_response(response: Any):
                         for i, item in enumerate(server.parsed_model_list[:min(3, len(server.parsed_model_list))]):
                             log_output += f"  Model {i+1}: ID={item.get('id')}, Name={item.get('display_name')}, Temp={item.get('default_temperature')}, MaxTokDef={item.get('default_max_output_tokens')}, MaxTokSup={item.get('supported_max_output_tokens')}, TopP={item.get('default_top_p')}\n"
                         logger.info(log_output)
-                    if model_list_fetch_event and not model_list_fetch_event.is_set(): 
+                    if model_list_fetch_event and not model_list_fetch_event.is_set():
                         model_list_fetch_event.set()
                 elif not server.parsed_model_list:
                     logger.warning("解析后模型列表仍然为空。")
-                    if model_list_fetch_event and not model_list_fetch_event.is_set(): 
+                    if model_list_fetch_event and not model_list_fetch_event.is_set():
                         model_list_fetch_event.set()
             else:
                 logger.warning("models_array_container 为 None，无法解析模型列表。")
-                if model_list_fetch_event and not model_list_fetch_event.is_set(): 
+                if model_list_fetch_event and not model_list_fetch_event.is_set():
                     model_list_fetch_event.set()
         except json.JSONDecodeError as json_err:
             logger.error(f"解析模型列表JSON失败: {json_err}. 响应 (前500字): {await response.text()[:500]}")
@@ -251,7 +252,7 @@ async def _handle_model_list_response(response: Any):
                 model_list_fetch_event.set()
 
 async def detect_and_extract_page_error(page: AsyncPage, req_id: str) -> Optional[str]:
-    """检测并提取页面错误"""
+    """Detect and extract page errors"""
     error_toast_locator = page.locator(ERROR_TOAST_SELECTOR).last
     try:
         await error_toast_locator.wait_for(state='visible', timeout=500)
@@ -263,42 +264,42 @@ async def detect_and_extract_page_error(page: AsyncPage, req_id: str) -> Optiona
         else:
              logger.warning(f"[{req_id}]    检测到错误提示框，但无法提取消息。")
              return "检测到错误提示框，但无法提取特定消息。"
-    except PlaywrightAsyncError: 
+    except PlaywrightAsyncError:
         return None
     except Exception as e:
         logger.warning(f"[{req_id}]    检查页面错误时出错: {e}")
         return None
 
 async def save_error_snapshot(error_name: str = 'error'):
-    """保存错误快照"""
+    """Save error snapshot"""
     import server
     name_parts = error_name.split('_')
     req_id = name_parts[-1] if len(name_parts) > 1 and len(name_parts[-1]) == 7 else None
     base_error_name = error_name if not req_id else '_'.join(name_parts[:-1])
     log_prefix = f"[{req_id}]" if req_id else "[无请求ID]"
     page_to_snapshot = server.page_instance
-    
+
     if not server.browser_instance or not server.browser_instance.is_connected() or not page_to_snapshot or page_to_snapshot.is_closed():
         logger.warning(f"{log_prefix} 无法保存快照 ({base_error_name})，浏览器/页面不可用。")
         return
-    
+
     logger.info(f"{log_prefix} 尝试保存错误快照 ({base_error_name})...")
     timestamp = int(time.time() * 1000)
     error_dir = os.path.join(os.path.dirname(__file__), '..', 'errors_py')
-    
+
     try:
         os.makedirs(error_dir, exist_ok=True)
         filename_suffix = f"{req_id}_{timestamp}" if req_id else f"{timestamp}"
         filename_base = f"{base_error_name}_{filename_suffix}"
         screenshot_path = os.path.join(error_dir, f"{filename_base}.png")
         html_path = os.path.join(error_dir, f"{filename_base}.html")
-        
+
         try:
             await page_to_snapshot.screenshot(path=screenshot_path, full_page=True, timeout=15000)
             logger.info(f"{log_prefix}   快照已保存到: {screenshot_path}")
         except Exception as ss_err:
             logger.error(f"{log_prefix}   保存屏幕截图失败 ({base_error_name}): {ss_err}")
-        
+
         try:
             content = await page_to_snapshot.content()
             f = None
@@ -325,14 +326,14 @@ async def get_response_via_edit_button(
     req_id: str,
     check_client_disconnected: Callable
 ) -> Optional[str]:
-    """通过编辑按钮获取响应"""
+    """Get response via edit button"""
     logger.info(f"[{req_id}] (Helper) 尝试通过编辑按钮获取响应...")
     last_message_container = page.locator('ms-chat-turn').last
     edit_button = last_message_container.get_by_label("Edit")
     finish_edit_button = last_message_container.get_by_label("Stop editing")
     autosize_textarea_locator = last_message_container.locator('ms-autosize-textarea')
     actual_textarea_locator = autosize_textarea_locator.locator('textarea')
-    
+
     try:
         logger.info(f"[{req_id}]   - 尝试悬停最后一条消息以显示 'Edit' 按钮...")
         try:
@@ -343,7 +344,7 @@ async def get_response_via_edit_button(
         except Exception as hover_err:
             logger.warning(f"[{req_id}]   - (get_response_via_edit_button) 悬停最后一条消息失败 (忽略): {type(hover_err).__name__}")
             # 即使悬停失败，也继续尝试后续操作，Playwright的expect_async可能会处理
-        
+
         logger.info(f"[{req_id}]   - 定位并点击 'Edit' 按钮...")
         try:
             from playwright.async_api import expect as expect_async
@@ -355,19 +356,19 @@ async def get_response_via_edit_button(
             logger.error(f"[{req_id}]   - 'Edit' 按钮不可见或点击失败: {edit_btn_err}")
             await save_error_snapshot(f"edit_response_edit_button_failed_{req_id}")
             return None
-        
+
         check_client_disconnected("编辑响应 - 点击 'Edit' 按钮后: ")
         await asyncio.sleep(0.3)
         check_client_disconnected("编辑响应 - 点击 'Edit' 按钮后延时后: ")
-        
+
         logger.info(f"[{req_id}]   - 从文本区域获取内容...")
         response_content = None
         textarea_failed = False
-        
+
         try:
             await expect_async(autosize_textarea_locator).to_be_visible(timeout=CLICK_TIMEOUT_MS)
             check_client_disconnected("编辑响应 - autosize-textarea 可见后: ")
-            
+
             try:
                 data_value_content = await autosize_textarea_locator.get_attribute("data-value")
                 check_client_disconnected("编辑响应 - get_attribute data-value 后: ")
@@ -377,7 +378,7 @@ async def get_response_via_edit_button(
             except Exception as data_val_err:
                 logger.warning(f"[{req_id}]   - 获取 data-value 失败: {data_val_err}")
                 check_client_disconnected("编辑响应 - get_attribute data-value 错误后: ")
-            
+
             if response_content is None:
                 logger.info(f"[{req_id}]   - data-value 获取失败或为None，尝试从内部 textarea 获取 input_value...")
                 try:
@@ -390,7 +391,7 @@ async def get_response_via_edit_button(
                 except Exception as input_val_err:
                      logger.warning(f"[{req_id}]   - 获取 input_value 也失败: {input_val_err}")
                      check_client_disconnected("编辑响应 - input_value 错误后: ")
-            
+
             if response_content is not None:
                 response_content = response_content.strip()
                 content_preview = response_content[:100].replace('\\n', '\\\\n')
@@ -398,13 +399,13 @@ async def get_response_via_edit_button(
             else:
                 logger.warning(f"[{req_id}]   - 所有方法 (data-value, input_value) 内容获取均失败或返回 None。")
                 textarea_failed = True
-                
+
         except Exception as textarea_err:
             logger.error(f"[{req_id}]   - 定位或处理文本区域时失败: {textarea_err}")
             textarea_failed = True
             response_content = None
             check_client_disconnected("编辑响应 - 获取文本区域错误后: ")
-        
+
         if not textarea_failed:
             logger.info(f"[{req_id}]   - 定位并点击 'Stop editing' 按钮...")
             try:
@@ -420,9 +421,9 @@ async def get_response_via_edit_button(
             check_client_disconnected("编辑响应 - 点击 'Stop editing' 后延时后: ")
         else:
              logger.info(f"[{req_id}]   - 跳过点击 'Stop editing' 按钮，因为文本区域读取失败。")
-        
+
         return response_content
-        
+
     except ClientDisconnectedError:
         logger.info(f"[{req_id}] (Helper Edit) 客户端断开连接。")
         raise
@@ -436,12 +437,12 @@ async def get_response_via_copy_button(
     req_id: str,
     check_client_disconnected: Callable
 ) -> Optional[str]:
-    """通过复制按钮获取响应"""
+    """Get response via copy button"""
     logger.info(f"[{req_id}] (Helper) 尝试通过复制按钮获取响应...")
     last_message_container = page.locator('ms-chat-turn').last
     more_options_button = last_message_container.get_by_label("Open options")
     copy_markdown_button = page.get_by_role("menuitem", name="Copy markdown")
-    
+
     try:
         logger.info(f"[{req_id}]   - 尝试悬停最后一条消息以显示选项...")
         await last_message_container.hover(timeout=CLICK_TIMEOUT_MS)
@@ -449,7 +450,7 @@ async def get_response_via_copy_button(
         await asyncio.sleep(0.5)
         check_client_disconnected("复制响应 - 悬停后延时后: ")
         logger.info(f"[{req_id}]   - 已悬停。")
-        
+
         logger.info(f"[{req_id}]   - 定位并点击 '更多选项' 按钮...")
         try:
             from playwright.async_api import expect as expect_async
@@ -461,11 +462,11 @@ async def get_response_via_copy_button(
             logger.error(f"[{req_id}]   - '更多选项' 按钮 (通过 get_by_label) 不可见或点击失败: {more_opts_err}")
             await save_error_snapshot(f"copy_response_more_options_failed_{req_id}")
             return None
-        
+
         check_client_disconnected("复制响应 - 点击更多选项后: ")
         await asyncio.sleep(0.5)
         check_client_disconnected("复制响应 - 点击更多选项后延时后: ")
-        
+
         logger.info(f"[{req_id}]   - 定位并点击 '复制 Markdown' 按钮...")
         copy_success = False
         try:
@@ -478,15 +479,15 @@ async def get_response_via_copy_button(
             logger.error(f"[{req_id}]   - '复制 Markdown' 按钮 (通过 get_by_role) 点击失败: {copy_err}")
             await save_error_snapshot(f"copy_response_copy_button_failed_{req_id}")
             return None
-        
+
         if not copy_success:
              logger.error(f"[{req_id}]   - 未能点击 '复制 Markdown' 按钮。")
              return None
-             
+
         check_client_disconnected("复制响应 - 点击复制按钮后: ")
         await asyncio.sleep(0.5)
         check_client_disconnected("复制响应 - 点击复制按钮后延时后: ")
-        
+
         logger.info(f"[{req_id}]   - 正在读取剪贴板内容...")
         try:
             clipboard_content = await page.evaluate('navigator.clipboard.readText()')
@@ -505,7 +506,7 @@ async def get_response_via_copy_button(
                  logger.error(f"[{req_id}]   - 读取剪贴板失败: {clipboard_err}")
             await save_error_snapshot(f"copy_response_clipboard_read_failed_{req_id}")
             return None
-            
+
     except ClientDisconnectedError:
         logger.info(f"[{req_id}] (Helper Copy) 客户端断开连接。")
         raise
@@ -525,17 +526,17 @@ async def _wait_for_response_completion(
     timeout_ms=RESPONSE_COMPLETION_TIMEOUT,
     initial_wait_ms=INITIAL_WAIT_MS_BEFORE_POLLING
 ) -> bool:
-    """等待响应完成"""
+    """Wait for response completion"""
     from playwright.async_api import TimeoutError
-    
+
     logger.info(f"[{req_id}] (WaitV3) 开始等待响应完成... (超时: {timeout_ms}ms)")
     await asyncio.sleep(initial_wait_ms / 1000) # Initial brief wait
-    
+
     start_time = time.time()
     wait_timeout_ms_short = 3000 # 3 seconds for individual element checks
-    
+
     consecutive_empty_input_submit_disabled_count = 0
-    
+
     while True:
         if check_client_disconnected_func(current_chat_id, req_id):
             logger.info(f"[{req_id}] (WaitV3) 客户端断开连接，中止等待。")
@@ -547,7 +548,7 @@ async def _wait_for_response_completion(
             await save_error_snapshot(f"wait_completion_v3_overall_timeout_{req_id}")
             return False
 
-        if check_client_disconnected_func(current_chat_id, req_id): 
+        if check_client_disconnected_func(current_chat_id, req_id):
             return False
 
         # --- 主要条件: 输入框空 & 提交按钮禁用 ---
@@ -557,8 +558,8 @@ async def _wait_for_response_completion(
             is_submit_disabled = await submit_button_locator.is_disabled(timeout=wait_timeout_ms_short)
         except TimeoutError:
             logger.warning(f"[{req_id}] (WaitV3) 检查提交按钮是否禁用超时。为本次检查假定其未禁用。")
-        
-        if check_client_disconnected_func(current_chat_id, req_id): 
+
+        if check_client_disconnected_func(current_chat_id, req_id):
             return False
 
         if is_input_empty and is_submit_disabled:
@@ -574,8 +575,8 @@ async def _wait_for_response_completion(
             except TimeoutError:
                 if DEBUG_LOGS_ENABLED:
                     logger.debug(f"[{req_id}] (WaitV3) 主要条件满足后，检查编辑按钮可见性超时。")
-            
-            if check_client_disconnected_func(current_chat_id, req_id): 
+
+            if check_client_disconnected_func(current_chat_id, req_id):
                 return False
 
             # 启发式完成: 如果主要条件持续满足，但编辑按钮仍未出现
@@ -586,9 +587,9 @@ async def _wait_for_response_completion(
             consecutive_empty_input_submit_disabled_count = 0 # 重置计数器
             if DEBUG_LOGS_ENABLED:
                 reasons = []
-                if not is_input_empty: 
+                if not is_input_empty:
                     reasons.append("输入框非空")
-                if not is_submit_disabled: 
+                if not is_submit_disabled:
                     reasons.append("提交按钮非禁用")
                 logger.debug(f"[{req_id}] (WaitV3) 主要条件未满足 ({', '.join(reasons)}). 继续轮询...")
 
@@ -599,7 +600,7 @@ async def _get_final_response_content(
     req_id: str,
     check_client_disconnected: Callable
 ) -> Optional[str]:
-    """获取最终响应内容"""
+    """Get final response content"""
     logger.info(f"[{req_id}] (Helper GetContent) 开始获取最终响应内容...")
     response_content = await get_response_via_edit_button(
         page, req_id, check_client_disconnected
@@ -607,7 +608,7 @@ async def _get_final_response_content(
     if response_content is not None:
         logger.info(f"[{req_id}] (Helper GetContent) ✅ 成功通过编辑按钮获取内容。")
         return response_content
-    
+
     logger.warning(f"[{req_id}] (Helper GetContent) 编辑按钮方法失败或返回空，回退到复制按钮方法...")
     response_content = await get_response_via_copy_button(
         page, req_id, check_client_disconnected
@@ -615,7 +616,7 @@ async def _get_final_response_content(
     if response_content is not None:
         logger.info(f"[{req_id}] (Helper GetContent) ✅ 成功通过复制按钮获取内容。")
         return response_content
-    
+
     logger.error(f"[{req_id}] (Helper GetContent) 所有获取响应内容的方法均失败。")
     await save_error_snapshot(f"get_content_all_methods_failed_{req_id}")
-    return None 
+    return None
