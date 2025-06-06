@@ -76,61 +76,103 @@ This project serves as a proxy layer that translates OpenAI API requests to Goog
 
 ## Project Structure
 
+**🎉 Restructured for Modern Python Development**
+
 ```text
-freegoogleapi/
-├── server.py                    # Main server file
-├── launch_camoufox.py          # Launcher script
-├── gui_launcher.py             # GUI launcher
-├── llm.py                      # Local LLM simulation
-├── requirements.txt            # Dependencies
-├── excluded_models.txt         # Excluded models list
-├── index.html                  # Web UI
-├── webui.css                   # Web UI styles
-├── webui.js                    # Web UI scripts
-├── config/                     # Configuration management
-│   ├── settings.py            # Runtime settings
-│   ├── constants.py           # Project constants
-│   ├── selectors.py           # CSS selectors
-│   └── timeouts.py            # Timeout configuration
-├── models/                     # Data models
-│   ├── chat.py                # Chat data structures
-│   ├── exceptions.py          # Exception classes
-│   └── logging.py             # Logging models
-├── api_utils/                  # API processing
-│   ├── app.py                 # FastAPI application
-│   ├── routes.py              # API routes
-│   ├── request_processor.py   # Request processing
-│   ├── queue_worker.py        # Queue worker
-│   └── utils.py               # API utilities
-├── browser_utils/              # Browser operations
-│   ├── initialisation.py      # Browser initialization
-│   ├── model_management.py    # Model management
-│   └── operations.py          # Page operations
-├── logging_utils/              # Logging system
-│   └── setup.py               # Logging configuration
-├── stream/                     # Stream proxy
-│   ├── main.py                # Main proxy service
-│   ├── proxy_server.py        # Proxy server
-│   ├── proxy_connector.py     # Proxy connector
-│   ├── interceptors.py        # Request interceptors
-│   ├── cert_manager.py        # Certificate management
-│   └── utils.py               # Utilities
-├── auth_profiles/              # Authentication files
-│   ├── active/                # Current auth files
-│   └── saved/                 # Saved auth files
-├── certs/                      # SSL certificates
-├── logs/                       # Log files
-└── errors_py/                  # Error snapshots
+aistudio_proxy_api/
+├── 📁 aistudio_proxy/                 # Main package (NEW)
+│   ├── __init__.py                    # Package initialization
+│   ├── main.py                        # Main application entry
+│   ├── server.py                      # FastAPI server
+│   │
+│   ├── 📁 api/                        # API layer (RENAMED from api_utils)
+│   │   ├── __init__.py
+│   │   ├── app.py                     # FastAPI application
+│   │   ├── routes.py                  # API routes
+│   │   ├── request_processor.py       # Request processing
+│   │   ├── queue_worker.py            # Queue worker
+│   │   └── utils.py                   # API utilities
+│   │
+│   ├── 📁 browser/                    # Browser automation (RENAMED from browser_utils)
+│   │   ├── __init__.py
+│   │   ├── initialization.py          # Browser initialization
+│   │   ├── operations.py              # Page operations
+│   │   └── model_management.py        # Model management
+│   │
+│   ├── 📁 stream/                     # Stream proxy (MOVED)
+│   │   ├── __init__.py
+│   │   ├── main.py                    # Stream service entry
+│   │   ├── proxy_server.py            # Proxy server
+│   │   ├── proxy_connector.py         # Proxy connector
+│   │   ├── interceptors.py            # Request interceptors
+│   │   ├── cert_manager.py            # Certificate management
+│   │   └── utils.py                   # Stream utilities
+│   │
+│   ├── 📁 core/                       # Core business logic (NEW)
+│   │   ├── __init__.py
+│   │   ├── chat.py                    # Chat data models
+│   │   ├── exceptions.py              # Custom exceptions
+│   │   └── logging.py                 # Logging models
+│   │
+│   ├── 📁 config/                     # Configuration management (MOVED)
+│   │   ├── __init__.py
+│   │   ├── settings.py                # Main settings
+│   │   ├── constants.py               # Constants
+│   │   ├── selectors.py               # CSS selectors
+│   │   └── timeouts.py                # Timeout configuration
+│   │
+│   └── 📁 utils/                      # Utilities (NEW)
+│       ├── __init__.py
+│       └── setup.py                   # Logging utilities (MOVED from logging_utils)
+│
+├── 📁 scripts/                        # Entry points and utilities (NEW)
+│   ├── start.sh                       # Main startup script
+│   ├── start.py                       # Python startup script
+│   ├── test_api.sh                    # API testing script
+│   ├── launch_camoufox.py             # Browser launcher
+│   ├── gui_launcher.py                # GUI launcher
+│   ├── fetch_camoufox_data.py         # Camoufox data fetcher
+│   └── llm.py                         # Local LLM simulation
+│
+├── 📁 static/                         # Static assets (NEW)
+│   ├── 📁 web/                        # Web UI files
+│   │   ├── index.html                 # Web interface
+│   │   ├── webui.css                  # Web UI styles
+│   │   └── webui.js                   # Web UI scripts
+│   └── 📁 certs/                      # SSL certificates (MOVED)
+│
+├── 📁 data/                           # Data and profiles (NEW)
+│   ├── 📁 auth_profiles/              # Authentication profiles (MOVED)
+│   │   ├── active/                    # Current auth files
+│   │   └── saved/                     # Saved auth files
+│   └── 📁 logs/                       # Log files (MOVED)
+│
+├── 📁 tests/                          # Test suite (NEW)
+├── 📁 docs/                           # Additional documentation (NEW)
+│
+├── pyproject.toml                     # Modern Python packaging (NEW)
+├── requirements.txt                   # Dependencies
+├── README.md                          # Main documentation
+├── server.py                          # Main server entry (UPDATED)
+└── (compatibility layers)             # Backward compatibility files
 ```
+
+**✅ Backward Compatibility**: All original imports and scripts continue to work unchanged!
 
 ### Module Responsibilities
 
-- **config/**: Configuration management (environment variables, constants, selectors, timeouts)
-- **models/**: Data structures, exceptions, and logging models
-- **api_utils/**: API routing, request handling, and queue management
-- **browser_utils/**: Browser operations, initialization, and model management
-- **logging_utils/**: Unified logging configuration
-- **stream/**: High-performance streaming proxy with certificate management
+**New Package Structure:**
+- **aistudio_proxy.api/**: FastAPI application, routes, request processing, and queue management
+- **aistudio_proxy.browser/**: Browser automation, initialization, and model management
+- **aistudio_proxy.stream/**: High-performance streaming proxy with certificate management
+- **aistudio_proxy.core/**: Core business logic, data models, and exceptions
+- **aistudio_proxy.config/**: Configuration management (environment variables, constants, selectors, timeouts)
+- **aistudio_proxy.utils/**: Shared utilities and logging configuration
+- **scripts/**: Entry points and utility scripts
+- **static/**: Web UI assets and SSL certificates
+- **data/**: Runtime data, authentication profiles, and logs
+
+**Backward Compatibility**: Original module names (`api_utils`, `browser_utils`, etc.) still work through compatibility layers.
 
 ## Disclaimer
 
