@@ -262,6 +262,8 @@ graph TD
 
 ## Tutorial
 
+**🎉 Simplified Deployment**: This project now focuses exclusively on native Python deployment for easier setup and better performance. Docker support has been removed to streamline the installation process.
+
 We recommend using [`gui_launcher.py`](gui_launcher.py) (graphical interface) or directly using [`launch_camoufox.py`](launch_camoufox.py) (command line) for daily operation.
 
 ### Prerequisites
