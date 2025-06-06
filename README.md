@@ -1,78 +1,126 @@
-# AI Studio Proxy Server (Python/Camoufox Version)
+# AI Studio Proxy API
+
+A high-performance proxy server that provides OpenAI-compatible API access to Google AI Studio using Python, FastAPI, Playwright, and Camoufox.
 
 ## Table of Contents
 
-- [AI Studio Proxy Server (Python/Camoufox Version)](#ai-studio-proxy-server-pythoncamoufox-version)
+- [AI Studio Proxy API](#ai-studio-proxy-api)
   - [Table of Contents](#table-of-contents)
-  - [Project Overview](#project-overview)
-  - [How it works](#how-it-works)
-  - [Project Structure](#project-structure)
-    - [Module Responsibilities](#module-responsibilities)
-  - [Disclaimer](#disclaimer)
-  - [Core Features](#core-features)
-  - [Important notes (Python version)](#important-notes-python-version)
-  - [Project workflow diagram](#project-workflow-diagram)
-  - [Tutorial](#tutorial)
-    - [Prerequisites](#prerequisites)
-    - [Installation](#installation)
-    - [First run and authentication](#first-run-and-authentication)
-    - [Daily operation](#daily-operation)
-    - [API usage](#api-usage)
-    - [Web UI (service testing)](#web-ui-service-testing)
-    - [Configure the client (using Open WebUI as an example)](#configure-the-client-using-open-webui-as-an-example)
+  - [🚀 Quick Start](#-quick-start)
+  - [📋 Project Overview](#-project-overview)
+  - [✨ Core Features](#-core-features)
+  - [🏗️ Architecture](#️-architecture)
+  - [📦 Installation](#-installation)
+  - [🔧 Configuration](#-configuration)
+  - [🌐 API Reference](#-api-reference)
+  - [🛠️ Usage Examples](#️-usage-examples)
+  - [🔍 Troubleshooting](#-troubleshooting)
+  - [🖥️ Multi-Platform Support](#️-multi-platform-support)
+  - [⚙️ Advanced Configuration](#️-advanced-configuration)
+  - [📚 Additional Resources](#-additional-resources)
 
-  - [Multi-platform Guide (Python version)](#multi-platform-guide-python-version)
-    - [macOS / Linux](#macos--linux)
-    - [Windows](#windows)
-      - [Native Windows](#native-windows)
-      - [WSL (Windows Subsystem for Linux)](#wsl-windows-subsystem-for-linux)
-  - [Troubleshooting (Python version)](#troubleshooting-python-version)
-    - [Common Issues](#common-issues)
-    - [Model parameter settings not taking effect](#model-parameter-settings-not-taking-effect)
-    - [Streaming proxy service: how it works](#streaming-proxy-service-how-it-works)
-      - [Features](#features)
-      - [Certificate Generation](#certificate-generation)
-  - [About Camoufox](#about-camoufox)
-  - [About fetch\_camoufox\_data.py](#about-fetch_camoufox_datapy)
-  - [Control Log Output (Python Version)](#control-log-output-python-version)
+## 🚀 Quick Start
 
-## Project Overview
+Get up and running in minutes:
 
-This is a proxy server based on Python + FastAPI + Playwright + Camoufox, which aims to indirectly access the Google AI Studio web version by simulating the OpenAI API.
+```bash
+# Clone and setup
+git clone https://github.com/lolsZz/AIstudioProxyAPI
+cd AIstudioProxyAPI
 
-The project adopts a modular architecture design with clear separation of responsibilities:
+# Create virtual environment
+uv venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate  # Windows
 
-- **FastAPI**: Provides high-performance API interfaces compatible with OpenAI standards, which now supports model parameter passing and dynamic model switching.
-- **Playwright**: A powerful browser automation library for interacting with AI Studio pages.
-- **Camoufox**: A modified and optimised Firefox browser focused on fingerprint detection and robot detection. It disguises browser fingerprints through underlying modifications rather than JS injection, aiming to simulate real user traffic and improve the stealth and success rate of automated operations.
-- **Request queue**: Ensures requests are processed in order to improve stability.
-- **Modular design**: The project adopts a clear module separation, including independent modules for configuration management, API handling, browser operations, and logging systems.
+# Install dependencies
+uv install -r requirements.txt
+uv install camoufox[geoip]
 
-Through this proxy, various clients that support the OpenAI API (such as Open WebUI, LobeChat, NextChat, etc.) can connect to and use Google AI Studio models.
+# Download browser
+camoufox fetch
 
-## How it works
+# Start the server
+./start.sh
+```
 
-This project serves as a proxy layer that translates OpenAI API requests to Google AI Studio interactions:
+**That's it!** Your OpenAI-compatible API is now running at `http://127.0.0.1:2048/v1`
 
-1. **API Compatibility Layer**:
-   - **Main server** ([`server.py`](server.py)): Coordinates all modules and manages global state
-   - **API Routing** ([`api_utils/routes.py`](api_utils/routes.py)): Handles endpoints like `/v1/chat/completions`, `/v1/models`
-   - **Request processing** ([`api_utils/request_processor.py`](api_utils/request_processor.py)): Validates and processes requests
-   - **Queue worker** ([`api_utils/queue_worker.py`](api_utils/queue_worker.py)): Manages request queue for stability
+## 📋 Project Overview
 
-2. **Browser Automation**:
-   - **Initialization** ([`browser_utils/initialisation.py`](browser_utils/initialisation.py)): Browser and page setup
-   - **Model management** ([`browser_utils/model_management.py`](browser_utils/model_management.py)): Model switching and retrieval
-   - **Operations** ([`browser_utils/operations.py`](browser_utils/operations.py)): Page interaction and response handling
+AI Studio Proxy API is a high-performance proxy server that provides OpenAI-compatible API access to Google AI Studio. It enables any OpenAI-compatible client (Open WebUI, LobeChat, NextChat, etc.) to seamlessly use Google's Gemini models.
 
-3. **Enhanced Browser (Camoufox)**:
-   - [`launch_camoufox.py`](launch_camoufox.py) launches Camoufox instances
-   - Camoufox is a modified Firefox with enhanced anti-fingerprinting capabilities
+**Key Technologies:**
 
-4. **Streaming Proxy Service** ([`stream/`](stream/)):
-   - **Main service** ([`stream/main.py`](stream/main.py)): High-performance response retrieval (port `3120`)
-   - **Proxy server** ([`stream/proxy_server.py`](stream/proxy_server.py)): HTTP proxy functionality
-   - **Certificate Manager** ([`stream/cert_manager.py`](stream/cert_manager.py)): SSL certificate management
+- **FastAPI**: High-performance API server with OpenAI-compatible endpoints
+- **Playwright + Camoufox**: Advanced browser automation with anti-detection capabilities
+- **Modular Architecture**: Clean separation of concerns for maintainability
+- **Request Queue**: Ensures stable, sequential processing
+- **Streaming Support**: Real-time response streaming
+
+## ✨ Core Features
+
+- **🔌 OpenAI API Compatibility**: Drop-in replacement for OpenAI API
+  - `/v1/chat/completions` - Chat completions with streaming support
+  - `/v1/models` - List available Gemini models
+  - `/health` - Health check endpoint
+  - `/api/info` - API information and status
+
+- **🤖 15+ Gemini Models**: Access to the latest Google AI models
+  - Gemini 2.5 Pro Preview, Flash Preview
+  - Gemini 2.0 Flash, Flash-Lite
+  - Gemini 1.5 Pro, Flash, Flash-8B
+  - Gemma 3 models (1B, 4B, 12B, 27B)
+  - LearnLM 2.0 Flash Experimental
+
+- **⚡ High Performance**: Multiple response methods for optimal speed
+  - Integrated streaming proxy (port 3120) - Primary method
+  - External helper service support - Secondary method
+  - Browser automation fallback - Tertiary method
+
+- **🔐 Smart Authentication**: Automated login management
+  - One-time setup with persistent authentication
+  - Automatic authentication file management
+  - Debug mode for initial setup
+
+- **🚀 Easy Deployment**: Multiple launch options
+  - Auto mode - Intelligent mode selection
+  - Headless mode - Production deployment
+  - Debug mode - Development and setup
+  - GUI launcher - User-friendly interface
+
+- **🛡️ Anti-Detection**: Advanced stealth capabilities
+  - Camoufox browser with fingerprint spoofing
+  - Real user traffic simulation
+  - Enhanced success rates
+
+## 🏗️ Architecture
+
+The system uses a three-tier approach for maximum reliability:
+
+```mermaid
+graph TD
+    Client[OpenAI Client] --> API[FastAPI Server :2048]
+    API --> Queue[Request Queue]
+    Queue --> Priority{Priority System}
+
+    Priority -->|1st Priority| Stream[Stream Proxy :3120]
+    Priority -->|2nd Priority| Helper[Helper Service]
+    Priority -->|3rd Priority| Browser[Browser Automation]
+
+    Stream --> AI[Google AI Studio]
+    Helper --> AI
+    Browser --> Camoufox[Camoufox Browser] --> AI
+
+    AI --> Response[Response]
+    Response --> API
+    API --> Client
+```
+
+**Request Processing Priority:**
+1. **Stream Proxy** (Port 3120) - Direct HTTPS interception for maximum speed
+2. **Helper Service** (Optional) - External service integration
+3. **Browser Automation** - Camoufox fallback for complex interactions
 
 ## Project Structure
 
@@ -260,233 +308,439 @@ graph TD
     ServerPY -- "API Response" --> API_Client
 ```
 
-## Tutorial
-
-**🎉 Simplified Deployment**: This project now focuses exclusively on native Python deployment for easier setup and better performance. Docker support has been removed to streamline the installation process.
-
-We recommend using [`gui_launcher.py`](gui_launcher.py) (graphical interface) or directly using [`launch_camoufox.py`](launch_camoufox.py) (command line) for daily operation.
+## 📦 Installation
 
 ### Prerequisites
 
-- **Python**: 3.8 or higher (3.9+ recommended).
-- **pip**: Python package manager.
-- **(Optional but recommended) Git**: For cloning the repository.
-- **Google AI Studio account**: With normal access and usage.
-- **xvfb** (only required when using the `--virtual-display` mode on Linux): X virtual frame buffer.
+- **Python 3.8+** (3.9+ recommended)
+- **uv** package manager (recommended) or pip
+- **Git** (for cloning)
+- **Google AI Studio account** with access
+- **xvfb** (Linux only, for `--virtual-display` mode)
 
-### Installation
-
-1. **Clone the repository**:
+### Quick Install
 
 ```bash
-git clone https://github.com/CJackHwang/AIstudioProxyAPI
+# Clone repository
+git clone https://github.com/lolsZz/AIstudioProxyAPI
 cd AIstudioProxyAPI
-```
 
-2. **(Recommended) Create and activate a virtual environment**:
+# Create virtual environment
+uv venv .venv
+source .venv/bin/activate  # Linux/macOS
+# .venv\Scripts\activate    # Windows
 
-```bash
-python -m venv venv
-source venv/bin/activate  # Linux/macOS
-# venv\\Scripts\\activate  # Windows
-```
+# Install dependencies
+uv install -r requirements.txt
+uv install camoufox[geoip]
 
-3. **Install Camoufox and dependencies**:
-
-```bash
-# Install the Camoufox library (recommended to include geoip data, especially when using a proxy)
-pip install -U camoufox[geoip]
-# Install other Python libraries required for the project
-pip install -r requirements.txt
-```
-
-4. **Download Camoufox browser**:
-
-```bash
-# Camoufox needs to download its modified version of Firefox
+# Download browser
 camoufox fetch
+
+# Start server
+./start.sh
 ```
 
-5. **Install Playwright browser dependencies (if needed)**:
+### Alternative: pip Installation
 
 ```bash
-# Ensure that the Playwright library can find the necessary system dependencies
-launch_camoufox.py --debug --server-port 2048 --stream-port 3120 --helper "" --internal-camoufox-proxy ""
+# If you prefer pip over uv
+python -m venv .venv
+source .venv/bin/activate
 
+pip install -r requirements.txt
+pip install -U camoufox[geoip]
+camoufox fetch
+
+./start.sh
 ```
 
-### First run and authentication
+## 🔧 Configuration
 
-To avoid manually logging into AI Studio each time you start, you need to run once in [`launch_camoufox.py --debug`](launch_camoufox.py) mode or [`gui_launcher.py`](gui_launcher.py) head mode to generate the authentication file.
+### Initial Authentication Setup
 
-1. **Run Debug mode via the command line**:
+First-time users need to authenticate with Google AI Studio:
 
 ```bash
-python launch_camoufox.py --debug --server-port 2048 --stream-port 3120 --helper "" --internal-camoufox-proxy ""
+# Run authentication setup
+./start.sh auth
+
+# Or use debug mode
+./start.sh debug
 ```
 
-2. **Complete Google login** in the pop-up browser window until you see the AI Studio chat interface.
+1. **Complete Google login** in the browser window
+2. **Navigate to AI Studio** chat interface
+3. **Authentication files** are automatically saved to `auth_profiles/active/`
 
-3. **Save the authentication** when prompted and move the newly generated `.json` file from `auth_profiles/saved/` to the `auth_profiles/active/` directory.
-
-**Important**: Authentication files will expire! When headless mode fails to start and reports an authentication error, you need to delete the old file in the `active` directory and re-execute the debug mode steps to generate new authentication files.
-
-### Daily operation
-
-After completing the initial authentication setup, it is recommended to use the headless mode:
+### Launch Modes
 
 ```bash
-python launch_camoufox.py --headless --server-port 2048 --stream-port 3120 --helper "" --internal-camoufox-proxy ""
+# Auto mode (recommended) - smart mode selection
+./start.sh
+
+# Headless mode - production deployment
+./start.sh headless
+
+# Debug mode - development and troubleshooting
+./start.sh debug
+
+# Authentication setup only
+./start.sh auth
+
+# Test API endpoints
+./start.sh test
 ```
 
-### API usage
+### Port Configuration
 
-The proxy server listens on `http://127.0.0.1:2048` by default.
+```bash
+# Custom ports
+./start.sh headless --server-port 8080 --stream-port 3121
 
-- **Chat interface**: [`POST /v1/chat/completions`](api_utils/routes.py)
-- **Model list**: [`GET /v1/models`](api_utils/routes.py)
-- **API Information**: [`GET /api/info`](api_utils/routes.py)
-- **Health check**: [`GET /health`](api_utils/routes.py)
+# Environment variables
+export SERVER_PORT=8080
+export STREAM_PORT=3121
+./start.sh
+```
 
-Example request:
+## 🌐 API Reference
+
+### Base URLs
+
+- **API Base**: `http://127.0.0.1:2048/v1`
+- **Health Check**: `http://127.0.0.1:2048/health`
+- **Web UI**: `http://127.0.0.1:2048/`
+
+### Endpoints
+
+| Endpoint | Method | Description |
+|----------|--------|-------------|
+| `/v1/chat/completions` | POST | OpenAI-compatible chat completions |
+| `/v1/models` | GET | List available Gemini models |
+| `/health` | GET | Health check and status |
+| `/api/info` | GET | API information and statistics |
+| `/v1/queue` | GET | Request queue status |
+
+### Chat Completions
 
 ```bash
 curl -X POST http://127.0.0.1:2048/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "gemini-1.5-pro-latest",
+    "model": "gemini-2.5-pro-preview-06-05",
     "messages": [
-      {"role": "system", "content": "Be concise."},
-      {"role": "user", "content": "What is the capital of France?"}
+      {"role": "system", "content": "You are a helpful assistant."},
+      {"role": "user", "content": "Explain quantum computing"}
     ],
     "stream": false,
     "temperature": 0.7,
-    "max_output_tokens": 150,
+    "max_output_tokens": 500,
     "top_p": 0.9
   }'
 ```
 
-### Web UI (service testing)
+### Available Models
 
-This project provides a simple web user interface (`index.html`) for quickly testing the basic functions of the proxy and viewing its status.
+```bash
+curl http://127.0.0.1:2048/v1/models
+```
 
-- **Access**: Open the root address of the server in your browser, which is `http://127.0.0.1:2048/` by default.
-- **Features**:
-  - **Chat Interface**: A basic chat window where you can send messages and receive replies from AI Studio
-  - **Server Information**: View API call information and detailed status of the service health check
-  - **Model Settings**: Configure and save model parameters to local browser storage
-  - **System Log**: Real-time backend logs via WebSocket
-  - **Theme Switching**: Light/dark theme switching with local storage
+**Response includes:**
+- Gemini 2.5 Pro Preview, Flash Preview
+- Gemini 2.0 Flash, Flash-Lite
+- Gemini 1.5 Pro, Flash, Flash-8B
+- Gemma 3 models (1B, 4B, 12B, 27B)
+- LearnLM 2.0 Flash Experimental
 
-### Configure the client (using Open WebUI as an example)
+## 🛠️ Usage Examples
 
-1. Open Open WebUI.
-2. Go to 'Settings' -> 'Connection'.
-3. In the "Model" section, click 'Add Model'.
-4. **Model Name**: Enter the name you want, for example `aistudio-gemini-py`.
-5. **API Base URL**: Enter the proxy server address, e.g., `http://127.0.0.1:2048/v1`.
-6. **API Key**: Leave blank or enter any characters (the server does not verify this).
-7. Save the settings.
+### Python with OpenAI Library
 
-## Multi-platform Guide (Python version)
+```python
+import openai
 
-### macOS / Linux
+client = openai.OpenAI(
+    base_url="http://127.0.0.1:2048/v1",
+    api_key="not-needed"  # No API key required
+)
 
-- The installation process is usually smooth. Ensure that Python and pip are correctly installed and configured in the system PATH.
-- Activate the virtual environment using `source venv/bin/activate`.
-- `playwright install-deps firefox` may require the system package manager to install some dependencies.
-- For Linux users, consider starting with the `--virtual-display` flag (requires `xvfb` to be installed beforehand).
+response = client.chat.completions.create(
+    model="gemini-2.5-pro-preview-06-05",
+    messages=[{"role": "user", "content": "Hello!"}]
+)
+print(response.choices[0].message.content)
+```
 
-### Windows
+### Streaming Example
 
-#### Native Windows
+```python
+stream = client.chat.completions.create(
+    model="gemini-2.5-flash-preview-06-05",
+    messages=[{"role": "user", "content": "Write a story"}],
+    stream=True
+)
 
-- Ensure that the 'Add Python to PATH' option is selected when installing Python.
-- Activate the virtual environment using `venv\\Scripts\\activate`.
-- The Windows firewall may block Uvicorn/FastAPI from listening on the port.
-- We recommend using [`gui_launcher.py`](gui_launcher.py) to start, as it automatically handles background processes and user interaction.
+for chunk in stream:
+    if chunk.choices[0].delta.content:
+        print(chunk.choices[0].delta.content, end="")
+```
 
-#### WSL (Windows Subsystem for Linux)
+### Client Configuration
 
-- For users who are accustomed to the Linux environment, WSL (especially WSL2) provides a better experience.
-- In the WSL environment, follow the steps for macOS / Linux to install and handle dependencies.
-- All commands should be executed within the WSL terminal.
+**Open WebUI Setup:**
+1. Go to Settings → Connections
+2. Add new connection:
+   - **API Base URL**: `http://127.0.0.1:2048/v1`
+   - **API Key**: `not-needed` (or leave blank)
+3. Save and test connection
 
-## Troubleshooting (Python version)
+**Other Compatible Clients:**
+
+- LobeChat, NextChat, ChatGPT-Next-Web
+- Any OpenAI-compatible application
+
+## 🔍 Troubleshooting
+
+### Quick Diagnostics
+
+```bash
+# Check server status
+curl http://127.0.0.1:2048/health
+
+# Test API endpoints
+./start.sh test
+
+# View logs
+tail -f logs/app.log
+```
 
 ### Common Issues
 
-- **`pip install camoufox[geoip]` failed**: This may be due to network issues or a missing compilation environment. Try installing without `[geoip]`.
-- **`camoufox fetch` failed**: Common causes are network issues or SSL certificate verification failure. You can try running the [`fetch_camoufox_data.py`](fetch_camoufox_data.py) script.
-- **`playwright install-deps` failed**: This is usually caused by missing libraries on Linux systems. Read the error message carefully and install the missing system packages.
-- **Authentication failed (especially in headless mode)**: The `.json` file under `auth_profiles/active/` has expired or is invalid. Delete the files under `active` and re-run debug mode.
-- **Port conflict**: Use system tools to find and terminate the process occupying the port, or modify the port parameters.
+#### Installation Problems
 
-### Model parameter settings not taking effect
+**Camoufox installation fails:**
+```bash
+# Try without geoip data
+uv install camoufox
 
-This may be because `isAdvancedOpen` in `localStorage` on the AI Studio page is not set to `true` correctly, or `areToolsOpen` is interfering with the parameter panel. The proxy service attempts to automatically correct these `localStorage` settings and reload the page when it starts.
+# Or use the fallback script
+python fetch_camoufox_data.py
+```
 
-### Streaming proxy service: how it works
+**Virtual environment issues:**
+```bash
+# Recreate environment
+rm -rf .venv
+uv venv .venv
+source .venv/bin/activate
+uv install -r requirements.txt
+```
 
-#### Features
+#### Authentication Issues
 
-- Creates an HTTP proxy server (default port: 3120)
-- Intercepts HTTPS requests to Google domains (can also be configured)
-- Dynamically generates server certificates using a self-signed CA certificate
-- Parses AIStudio responses into OpenAI-compatible format
+**Authentication expired:**
+```bash
+# Remove old auth and re-authenticate
+rm auth_profiles/active/*.json
+./start.sh auth
+```
 
-#### Certificate Generation
+**Browser won't start:**
+```bash
+# Check dependencies (Linux)
+sudo apt-get install xvfb
 
-The project includes pre-generated CA certificates and keys. If you need to regenerate them, use the following commands:
+# Try debug mode
+./start.sh debug
+```
+
+#### Server Issues
+
+**Port already in use:**
+```bash
+# Use different port
+./start.sh headless --server-port 8080
+
+# Or kill existing process
+lsof -ti:2048 | xargs kill -9
+```
+
+**API not responding:**
+```bash
+# Check if server is running
+ps aux | grep python
+
+# Restart server
+./start.sh headless
+```
+
+### Performance Issues
+
+**Slow responses:**
+- Ensure stream proxy is enabled (port 3120)
+- Check network connectivity to Google services
+- Try different Gemini models (Flash models are faster)
+
+**Memory usage:**
+
+- Restart server periodically for long-running deployments
+- Use headless mode for production
+- Monitor logs for memory leaks
+
+## 🖥️ Multi-Platform Support
+
+### Linux (Recommended)
+
+**Ubuntu/Debian:**
+```bash
+# Install system dependencies
+sudo apt-get update
+sudo apt-get install python3 python3-pip python3-venv xvfb
+
+# Install uv (recommended)
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+
+**CentOS/RHEL:**
+```bash
+sudo yum install python3 python3-pip xorg-x11-server-Xvfb
+```
+
+### macOS
+
+**Using Homebrew:**
+```bash
+# Install Python and uv
+brew install python uv
+
+# Follow standard installation
+```
+
+### Windows
+
+**Native Windows:**
+```bash
+# Install Python from python.org
+# Ensure "Add Python to PATH" is checked
+
+# Install uv
+powershell -c "irm https://astral.sh/uv/install.ps1 | iex"
+
+# Use PowerShell for commands
+.venv\Scripts\activate
+```
+
+**WSL2 (Recommended for Windows):**
+```bash
+# Install WSL2 with Ubuntu
+wsl --install
+
+# Follow Linux instructions inside WSL
+```
+
+## ⚙️ Advanced Configuration
+
+### Environment Variables
 
 ```bash
+# Server configuration
+export SERVER_PORT=2048
+export STREAM_PORT=3120
+export SERVER_LOG_LEVEL=INFO
+
+# Authentication
+export AUTO_SAVE_AUTH=true
+
+# Proxy settings
+export INTERNAL_CAMOUFOX_PROXY="http://proxy:8080"
+
+# Debug settings
+export DEBUG_LOGS_ENABLED=true
+export TRACE_LOGS_ENABLED=false
+```
+
+### Streaming Proxy Configuration
+
+The integrated streaming proxy provides the fastest response times:
+
+**Features:**
+- Direct HTTPS interception on port 3120
+- Dynamic SSL certificate generation
+- OpenAI-compatible response formatting
+- Automatic Google domain handling
+
+**Certificate Management:**
+```bash
+# Regenerate certificates if needed
 openssl genrsa -out certs/ca.key 2048
-openssl req -new -x509 -days 3650 -key certs/ca.key -out certs/ca.crt -subj '/C=CN/ST=Shanghai/L=Shanghai/O=AiStudioProxyHelper/OU=CA/CN=AiStudioProxyHelper CA/emailAddress=ca@example.com'
-openssl rsa -in certs/ca.key -out certs/ca.key
+openssl req -new -x509 -days 3650 -key certs/ca.key -out certs/ca.crt \
+  -subj '/C=US/ST=CA/L=SF/O=AIStudioProxy/CN=AIStudioProxy CA'
 ```
 
-## About Camoufox
+### Production Deployment
 
-This project uses [Camoufox](https://camoufox.com/) to provide browser instances with enhanced anti-fingerprinting capabilities.
+**Systemd Service (Linux):**
+```ini
+[Unit]
+Description=AI Studio Proxy API
+After=network.target
 
-- **Core objective**: Simulate real user traffic to avoid being identified as an automated script or bot by websites.
-- **Implementation Method**: Camoufox is based on Firefox and modifies the underlying C++ implementation of the browser to spoof device fingerprints rather than using JavaScript injection.
-- **Playwright Compatibility**: Camoufox provides an interface compatible with Playwright.
+[Service]
+Type=simple
+User=aistudio
+WorkingDirectory=/opt/aistudio-proxy
+ExecStart=/opt/aistudio-proxy/start.sh headless
+Restart=always
+RestartSec=10
 
-The primary purpose of using Camoufox is to improve stealth when interacting with the AI Studio web page, reducing the likelihood of detection or restriction.
+[Install]
+WantedBy=multi-user.target
+```
 
-## About fetch_camoufox_data.py
-
-The project root directory contains a helper script named [`fetch_camoufox_data.py`](fetch_camoufox_data.py).
-
-- **Purpose**: This script attempts to disable SSL certificate verification and force download the browser files and data required by Camoufox when the `camoufox fetch` command fails.
-- **Risk**: Disabling SSL verification poses a security risk! Please only run this script if you fully understand the risks and are certain that your network environment is trustworthy.
-- **Usage**: If `camoufox fetch` fails, try running `python fetch_camoufox_data.py` in the project root directory.
-
-## Control Log Output (Python Version)
-
-You can control the level of detail and behaviour of logs in several ways:
-
-1. **Main server logs**: The main server has its own independent logging system, which is recorded in `logs/app.log` and controlled by environment variables:
-   - **`SERVER_LOG_LEVEL`**: Controls the level of the main logger (default is `INFO`)
-   - **`SERVER_REDIRECT_PRINT`**: Controls the behaviour of `print()` and `input()` inside the server
-   - **`DEBUG_LOGS_ENABLED`**: Controls whether detailed debug log points are enabled
-   - **`TRACE_LOGS_ENABLED`**: Controls whether deeper tracing logs are enabled
-
-2. **Environment variable examples**:
-
+**Docker Alternative (if needed):**
 ```bash
-# Linux/macOS
-export SERVER_LOG_LEVEL=DEBUG
-python launch_camoufox.py
-
-# Windows (PowerShell)
-$env:SERVER_LOG_LEVEL='DEBUG'
-python launch_camoufox.py
+# While Docker support was removed, you can create a simple container
+FROM python:3.11-slim
+WORKDIR /app
+COPY . .
+RUN pip install -r requirements.txt && pip install camoufox[geoip]
+RUN camoufox fetch
+CMD ["./start.sh", "headless"]
 ```
 
-3. **Log files**:
-   - `logs/app.log`: Detailed logs of the FastAPI server
-   - `logs/launch_app.log`: Logs of the launcher
+## 📚 Additional Resources
 
-4. **Web UI Logs**: The right sidebar of the Web UI displays real-time logs from the server via WebSocket.
+### About Camoufox
+
+[Camoufox](https://camoufox.com/) provides enhanced anti-fingerprinting capabilities:
+
+- **Stealth Technology**: C++-level browser modifications (not JavaScript injection)
+- **Fingerprint Spoofing**: Mimics real user traffic patterns
+- **Playwright Compatible**: Drop-in replacement for standard browsers
+
+### Logging and Monitoring
+
+**Log Levels:**
+- `DEBUG` - Detailed debugging information
+- `INFO` - General operational messages
+- `WARNING` - Warning messages
+- `ERROR` - Error conditions
+
+**Log Files:**
+- `logs/app.log` - Main application logs
+- `logs/launch_app.log` - Launcher logs
+- Web UI - Real-time log streaming
+
+### Performance Optimization
+
+**Best Practices:**
+- Use headless mode for production
+- Enable stream proxy (port 3120) for fastest responses
+- Choose appropriate Gemini models (Flash for speed, Pro for quality)
+- Monitor memory usage and restart periodically
+- Use virtual display on Linux servers
+
+---
+
+**⚠️ Disclaimer**: This is an unofficial project for educational purposes. It depends on Google AI Studio's web interface and may become invalid due to page updates.
