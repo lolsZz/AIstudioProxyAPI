@@ -20,7 +20,7 @@
     - [API usage](#api-usage)
     - [Web UI (service testing)](#web-ui-service-testing)
     - [Configure the client (using Open WebUI as an example)](#configure-the-client-using-open-webui-as-an-example)
-  - [Docker Deployment](#docker-deployment)
+
   - [Multi-platform Guide (Python version)](#multi-platform-guide-python-version)
     - [macOS / Linux](#macos--linux)
     - [Windows](#windows)
@@ -385,14 +385,6 @@ This project provides a simple web user interface (`index.html`) for quickly tes
 5. **API Base URL**: Enter the proxy server address, e.g., `http://127.0.0.1:2048/v1`.
 6. **API Key**: Leave blank or enter any characters (the server does not verify this).
 7. Save the settings.
-
-## Docker Deployment
-
-This project supports deployment via Docker. For detailed build and run instructions, please refer to:
-
-- [Docker Deployment Guide (README-Docker.md)](README-Docker.md)
-
-Please note that the first run to obtain the authentication file cannot be completed in the Docker environment. It must be completed on the host first.
 
 ## Multi-platform Guide (Python version)
 

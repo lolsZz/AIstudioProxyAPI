@@ -82,7 +82,7 @@ python3 start.py test
 # Custom server port
 ./start.sh headless --server-port 8080
 
-# Custom stream proxy port  
+# Custom stream proxy port
 ./start.sh headless --stream-port 3121
 
 # Both custom ports
@@ -143,7 +143,7 @@ curl -X POST http://127.0.0.1:2048/v1/chat/completions \
 curl -X POST http://127.0.0.1:2048/v1/chat/completions \
   -H 'Content-Type: application/json' \
   -d '{
-    "model": "gemini-2.5-pro-preview-06-05", 
+    "model": "gemini-2.5-pro-preview-06-05",
     "messages": [{"role": "user", "content": "Tell me a story"}],
     "stream": true
   }'
@@ -160,7 +160,7 @@ curl -X POST http://127.0.0.1:2048/v1/chat/completions \
 **Solution**:
 ```bash
 uv venv .venv
-source .venv/bin/activate  
+source .venv/bin/activate
 uv install -r requirements.txt
 ```
 
@@ -215,13 +215,6 @@ export DEBUG_LOGS_ENABLED=true
 
 ### Integration with Other Tools
 
-#### Docker
-```bash
-# Build and run with startup script
-docker build -t ai-studio-proxy .
-docker run -p 2048:2048 -p 3120:3120 ai-studio-proxy
-```
-
 #### Systemd Service
 ```ini
 [Unit]
@@ -243,7 +236,7 @@ WantedBy=multi-user.target
 
 ### Automatic Environment Detection
 - ✅ Checks virtual environment
-- ✅ Validates dependencies  
+- ✅ Validates dependencies
 - ✅ Detects authentication status
 - ✅ Auto-configures best mode
 
