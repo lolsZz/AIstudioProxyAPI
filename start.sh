@@ -47,30 +47,76 @@ print_header() {
 # Function to check if virtual environment exists and activate it
 setup_environment() {
     print_status "Setting up environment..."
-    
+
     if [ ! -d "$VENV_DIR" ]; then
         print_error "Virtual environment not found at $VENV_DIR"
         print_error "Please run: uv venv .venv && source .venv/bin/activate && uv install -r requirements.txt"
         exit 1
     fi
-    
+
     # Activate virtual environment
     source "$VENV_DIR/bin/activate"
     print_status "Virtual environment activated"
 }
 
+# Function to cleanup ports if needed
+cleanup_ports() {
+    local server_port=${1:-$DEFAULT_SERVER_PORT}
+    local stream_port=${2:-$DEFAULT_STREAM_PORT}
+    local camoufox_port=9222
+
+    print_status "Checking for port conflicts..."
+
+    # Function to check if a port is in use
+    check_port() {
+        local port=$1
+        local port_name=$2
+        if lsof -ti :$port >/dev/null 2>&1; then
+            local pids=$(lsof -ti :$port 2>/dev/null)
+            print_warning "$port_name port $port is in use by PID(s): $pids"
+
+            # In headless mode, automatically kill processes
+            if [[ "$MODE" == "headless" || "$MODE" == "auto" ]]; then
+                print_status "Automatically cleaning up $port_name port $port..."
+                for pid in $pids; do
+                    if kill -TERM $pid 2>/dev/null; then
+                        print_status "Terminated process $pid using $port_name port $port"
+                        sleep 1
+                    fi
+                done
+
+                # Check if port is now free
+                if ! lsof -ti :$port >/dev/null 2>&1; then
+                    print_status "✅ $port_name port $port is now available"
+                else
+                    print_warning "⚠️ $port_name port $port may still be in use"
+                fi
+            else
+                print_warning "⚠️ $port_name port $port conflict detected - may cause startup issues"
+            fi
+        else
+            print_status "✅ $port_name port $port is available"
+        fi
+    }
+
+    # Check all required ports
+    check_port $server_port "FastAPI server"
+    check_port $stream_port "Stream proxy"
+    check_port $camoufox_port "Camoufox debug"
+}
+
 # Function to check authentication status
 check_authentication() {
     print_status "Checking authentication status..."
-    
+
     # Create auth directories if they don't exist
     mkdir -p "$AUTH_ACTIVE_DIR"
     mkdir -p "$AUTH_SAVED_DIR"
-    
+
     # Check for active authentication files
     local active_files=$(find "$AUTH_ACTIVE_DIR" -name "*.json" 2>/dev/null | wc -l)
     local saved_files=$(find "$AUTH_SAVED_DIR" -name "*.json" 2>/dev/null | wc -l)
-    
+
     if [ "$active_files" -gt 0 ]; then
         print_status "Active authentication found - can run in headless mode"
         return 0
@@ -90,7 +136,7 @@ run_authentication() {
     print_status "Starting authentication process..."
     print_status "A browser window will open for Google login"
     print_status "Complete the login and press Enter when prompted"
-    
+
     python3 launch_camoufox.py --debug \
         --server-port "$DEFAULT_SERVER_PORT" \
         --stream-port "$DEFAULT_STREAM_PORT" \
@@ -102,12 +148,12 @@ run_authentication() {
 run_headless() {
     local server_port=${1:-$DEFAULT_SERVER_PORT}
     local stream_port=${2:-$DEFAULT_STREAM_PORT}
-    
+
     print_status "Starting AI Studio Proxy API in headless mode..."
     print_status "Server will be available at: http://127.0.0.1:$server_port"
     print_status "Stream proxy running on port: $stream_port"
     print_status "Press Ctrl+C to stop the server"
-    
+
     python3 launch_camoufox.py --headless \
         --server-port "$server_port" \
         --stream-port "$stream_port" \
@@ -119,11 +165,11 @@ run_headless() {
 run_debug() {
     local server_port=${1:-$DEFAULT_SERVER_PORT}
     local stream_port=${2:-$DEFAULT_STREAM_PORT}
-    
+
     print_status "Starting AI Studio Proxy API in debug mode..."
     print_status "Browser window will open for interaction"
     print_status "Server will be available at: http://127.0.0.1:$server_port"
-    
+
     python3 launch_camoufox.py --debug \
         --server-port "$server_port" \
         --stream-port "$stream_port" \
@@ -159,9 +205,9 @@ show_usage() {
 test_api() {
     local server_port=${1:-$DEFAULT_SERVER_PORT}
     local base_url="http://127.0.0.1:$server_port"
-    
+
     print_status "Testing API endpoints..."
-    
+
     # Test health endpoint
     echo "Testing health endpoint..."
     if curl -s "$base_url/health" > /dev/null; then
@@ -170,7 +216,7 @@ test_api() {
         print_error "❌ Health endpoint not responding"
         return 1
     fi
-    
+
     # Test models endpoint
     echo "Testing models endpoint..."
     if curl -s "$base_url/v1/models" > /dev/null; then
@@ -179,7 +225,7 @@ test_api() {
         print_error "❌ Models endpoint not responding"
         return 1
     fi
-    
+
     # Test API info
     echo "Testing API info endpoint..."
     if curl -s "$base_url/api/info" > /dev/null; then
@@ -188,7 +234,7 @@ test_api() {
         print_error "❌ API info endpoint not responding"
         return 1
     fi
-    
+
     print_status "All API endpoints are working!"
     echo ""
     echo "API Base URL: $base_url/v1"
@@ -200,15 +246,15 @@ test_api() {
 # Main script logic
 main() {
     print_header
-    
+
     # Change to script directory
     cd "$SCRIPT_DIR"
-    
+
     # Parse command line arguments
     MODE="auto"
     SERVER_PORT="$DEFAULT_SERVER_PORT"
     STREAM_PORT="$DEFAULT_STREAM_PORT"
-    
+
     while [[ $# -gt 0 ]]; do
         case $1 in
             auto|headless|debug|auth|test)
@@ -234,10 +280,15 @@ main() {
                 ;;
         esac
     done
-    
+
     # Setup environment
     setup_environment
-    
+
+    # Cleanup ports if needed (except for test mode)
+    if [[ "$MODE" != "test" ]]; then
+        cleanup_ports "$SERVER_PORT" "$STREAM_PORT"
+    fi
+
     # Handle different modes
     case "$MODE" in
         "auto")

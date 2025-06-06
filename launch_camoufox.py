@@ -683,40 +683,72 @@ if __name__ == "__main__":
             sys.exit(1)
         logger.info("  ✓ Xvfb 已找到。")
 
-    server_target_port = args.server_port
-    logger.info(f"--- 步骤 2: 检查 FastAPI 服务器目标端口 ({server_target_port}) 是否被占用 ---")
-    port_is_available = False
-    uvicorn_bind_host = "0.0.0.0" # from dev (was 127.0.0.1 in helper)
-    if is_port_in_use(server_target_port, host=uvicorn_bind_host):
-        logger.warning(f"  ❌ 端口 {server_target_port} (主机 {uvicorn_bind_host}) 当前被占用。")
-        pids_on_port = find_pids_on_port(server_target_port)
-        if pids_on_port:
-            logger.warning(f"     识别到以下进程 PID 可能占用了端口 {server_target_port}: {pids_on_port}")
-            if final_launch_mode == 'debug':
-                sys.stderr.flush()
-                # Using input_with_timeout for consistency, though timeout might not be strictly needed here
-                choice = input_with_timeout(f"     是否尝试终止这些进程？ (y/n, 输入 n 将继续并可能导致启动失败, 15s超时): ", 15).strip().lower()
-                if choice == 'y':
-                    logger.info("     用户选择尝试终止进程...")
-                    all_killed = all(kill_process_interactive(pid) for pid in pids_on_port)
-                    time.sleep(2)
-                    if not is_port_in_use(server_target_port, host=uvicorn_bind_host):
-                        logger.info(f"     ✅ 端口 {server_target_port} (主机 {uvicorn_bind_host}) 现在可用。")
-                        port_is_available = True
-                    else:
-                        logger.error(f"     ❌ 尝试终止后，端口 {server_target_port} (主机 {uvicorn_bind_host}) 仍然被占用。")
-                else:
-                    logger.info("     用户选择不自动终止或超时。将继续尝试启动服务器。")
-            else:
-                 logger.error(f"     无头模式下，不会尝试自动终止占用端口的进程。服务器启动可能会失败。")
-        else:
-            logger.warning(f"     未能自动识别占用端口 {server_target_port} 的进程。服务器启动可能会失败。")
+    # --- 步骤 2: 检查并清理所需端口 ---
+    logger.info("--- 步骤 2: 检查并清理所需端口 ---")
 
-        if not port_is_available:
-            logger.warning(f"--- 端口 {server_target_port} 仍可能被占用。继续启动服务器，它将自行处理端口绑定。 ---")
-    else:
-        logger.info(f"  ✅ 端口 {server_target_port} (主机 {uvicorn_bind_host}) 当前可用。")
-        port_is_available = True
+    def cleanup_port_if_needed(port: int, port_name: str, host: str = "0.0.0.0") -> bool:
+        """检查端口是否被占用，如果被占用则尝试清理"""
+        logger.info(f"  检查 {port_name} 端口 ({port}) 是否被占用...")
+
+        if not is_port_in_use(port, host=host):
+            logger.info(f"  ✅ {port_name} 端口 {port} (主机 {host}) 当前可用。")
+            return True
+
+        logger.warning(f"  ❌ {port_name} 端口 {port} (主机 {host}) 当前被占用。")
+        pids_on_port = find_pids_on_port(port)
+
+        if not pids_on_port:
+            logger.warning(f"     未能自动识别占用端口 {port} 的进程。")
+            return False
+
+        logger.warning(f"     识别到以下进程 PID 可能占用了端口 {port}: {pids_on_port}")
+
+        # 在无头模式下自动清理，在调试模式下询问用户
+        should_kill = False
+        if final_launch_mode in ['headless', 'virtual_headless']:
+            logger.info(f"     无头模式下自动清理占用 {port_name} 端口的进程...")
+            should_kill = True
+        elif final_launch_mode == 'debug':
+            sys.stderr.flush()
+            choice = input_with_timeout(f"     是否尝试终止这些进程？ (y/n, 输入 n 将继续并可能导致启动失败, 15s超时): ", 15).strip().lower()
+            should_kill = (choice == 'y')
+
+        if should_kill:
+            logger.info(f"     正在尝试终止占用 {port_name} 端口的进程...")
+            all_killed = all(kill_process_interactive(pid) for pid in pids_on_port)
+            time.sleep(2)  # 等待进程完全终止
+
+            if not is_port_in_use(port, host=host):
+                logger.info(f"     ✅ {port_name} 端口 {port} (主机 {host}) 现在可用。")
+                return True
+            else:
+                logger.error(f"     ❌ 尝试终止后，{port_name} 端口 {port} (主机 {host}) 仍然被占用。")
+                return False
+        else:
+            logger.info(f"     用户选择不自动终止或超时。{port_name} 端口可能仍被占用。")
+            return False
+
+    # 检查 FastAPI 服务器端口
+    server_target_port = args.server_port
+    uvicorn_bind_host = "0.0.0.0"
+    server_port_available = cleanup_port_if_needed(server_target_port, "FastAPI 服务器", uvicorn_bind_host)
+
+    # 检查 Camoufox 调试端口
+    camoufox_target_port = args.camoufox_debug_port
+    camoufox_port_available = cleanup_port_if_needed(camoufox_target_port, "Camoufox 调试", "localhost")
+
+    # 检查流代理端口（如果启用）
+    stream_port_available = True
+    if args.stream_port and args.stream_port != 0:
+        stream_port_available = cleanup_port_if_needed(args.stream_port, "流代理", "0.0.0.0")
+
+    # 报告端口状态
+    if not server_port_available:
+        logger.warning(f"--- FastAPI 服务器端口 {server_target_port} 可能仍被占用。继续启动，服务器将自行处理端口绑定。 ---")
+    if not camoufox_port_available:
+        logger.warning(f"--- Camoufox 调试端口 {camoufox_target_port} 可能仍被占用。这可能导致 Camoufox 启动失败。 ---")
+    if not stream_port_available:
+        logger.warning(f"--- 流代理端口 {args.stream_port} 可能仍被占用。这可能导致流代理启动失败。 ---")
 
 
     logger.info("--- 步骤 3: 准备并启动 Camoufox 内部进程 ---")
